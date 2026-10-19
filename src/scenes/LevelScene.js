@@ -3,6 +3,7 @@ import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER } from '../config.j
 import Controls from '../input/Controls.js';
 import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
+import Checkpoint from '../objects/Checkpoint.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 
@@ -72,6 +73,10 @@ const BOLTS = [
   [183, GROUND_ROW, 6, 40],
 ];
 
+// Проходная — в середине уровня, где над головой свободно и рядом нет врагов
+const CHECKPOINT_X = 97 * TILE + TILE / 2;
+const START_X = 48;
+
 const FINISH_X = 192 * TILE;
 
 export default class LevelScene extends Phaser.Scene {
@@ -88,6 +93,7 @@ export default class LevelScene extends Phaser.Scene {
     this.invulnerableUntil = -Infinity;
     this.controlLockedUntil = -Infinity;
     this.boltCount = 0;
+    this.spawn = { x: START_X, y: GROUND_TOP - PLAYER.height / 2 };
 
     this.platforms = [];
     this.addSolid(0, GROUND_TOP, worldWidth, GAME_HEIGHT - GROUND_TOP, COLORS.ground);
@@ -99,8 +105,10 @@ export default class LevelScene extends Phaser.Scene {
       .text(FINISH_X, GROUND_TOP - 72, 'ФИНИШ', { fontFamily: FONT.family, fontSize: '10px', color: COLORS.textAccent })
       .setOrigin(0.5, 1);
 
+    this.checkpoint = new Checkpoint(this, CHECKPOINT_X, GROUND_TOP);
+
     // Герой — пока синий прямоугольник 16×32
-    this.player = this.add.rectangle(48, GROUND_TOP - PLAYER.height / 2, PLAYER.width, PLAYER.height, COLORS.accent);
+    this.player = this.add.rectangle(this.spawn.x, this.spawn.y, PLAYER.width, PLAYER.height, COLORS.accent);
     this.physics.add.existing(this.player);
     this.player.body.setCollideWorldBounds(true);
     this.player.body.setMaxVelocity(1000, PLAYER.maxFallSpeed);
@@ -117,6 +125,8 @@ export default class LevelScene extends Phaser.Scene {
       this.enemies.map((e) => e.sprite),
       (player, enemy) => this.hurtPlayer(enemy),
     );
+
+    this.physics.add.overlap(this.player, this.checkpoint.zone, () => this.reachCheckpoint());
 
     this.bolts = [];
     BOLTS.forEach(([tx, row, count, lift = 0]) => {
@@ -187,6 +197,11 @@ export default class LevelScene extends Phaser.Scene {
     });
   }
 
+  reachCheckpoint() {
+    if (this.dead || !this.checkpoint.activate()) return;
+    this.spawn = { x: this.checkpoint.x, y: GROUND_TOP - PLAYER.height / 2 };
+  }
+
   onResume() {
     this.controls.reset();
     touch.setVisible(true);
@@ -253,13 +268,15 @@ export default class LevelScene extends Phaser.Scene {
 
     const body = this.player.body;
     if (this.health <= 0) {
-      // Временно: здоровье кончилось — уровень заново.
-      // Экран «Ушёл на перерыв. Вернёшься?» и чекпоинты — отдельной задачей «смерть».
+      // Здоровье кончилось — герой появляется на проходной (или в начале, если не отметился).
+      // Экран «Ушёл на перерыв. Вернёшься?» — отдельной задачей «смерть».
       this.dead = true;
       body.setVelocity(0, 0);
-      this.player.setFillStyle(COLORS.enemy);
+      body.moves = false;
+      this.tweens.killTweensOf(this.player);
+      this.player.setAlpha(1).setFillStyle(COLORS.enemy);
       touch.setVisible(false);
-      this.time.delayedCall(700, () => this.scene.restart());
+      this.time.delayedCall(700, () => this.respawn());
       return;
     }
 
@@ -271,7 +288,36 @@ export default class LevelScene extends Phaser.Scene {
     const away = this.player.x < enemy.x ? -1 : 1;
     body.setVelocity(away * PLAYER.knockbackX, -PLAYER.knockbackY);
 
-    // Мигание, пока неуязвим
+    this.blink();
+  }
+
+  // Герой появляется в точке возрождения с полным здоровьем.
+  // Собранные болты остаются собранными, враги продолжают ходить.
+  respawn() {
+    const { x, y } = this.spawn;
+    const body = this.player.body;
+    body.moves = true;
+    body.reset(x, y);
+    this.player.setFillStyle(COLORS.accent);
+    this.cameras.main.centerOn(x, y);
+
+    this.health = PLAYER.maxHealth;
+    this.healthBar.set(this.health);
+    this.dead = false;
+    this.lastGroundedAt = -Infinity;
+    this.jumpQueuedAt = -Infinity;
+    this.jumpCut = true;
+    this.controls.reset();
+    touch.setVisible(true);
+
+    // Секунда неуязвимости, чтобы не получить удар сразу после появления
+    this.invulnerableUntil = this.time.now + PLAYER.invulnTime;
+    this.blink();
+  }
+
+  // Мигание, пока неуязвим
+  blink() {
+    this.tweens.killTweensOf(this.player);
     this.tweens.add({
       targets: this.player,
       alpha: 0.25,

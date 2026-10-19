@@ -9,6 +9,8 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    // Сцена переиспользуется при каждом возврате в меню — сбрасываем флаг
+    this.starting = false;
     touch.setVisible(false);
     const cx = GAME_WIDTH / 2;
 

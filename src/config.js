@@ -15,6 +15,7 @@ export const COLORS = {
   healthEmpty: 0x3a3f47,
   bolt: 0x9aa3ad, // цвета болта из примера сетки в ТЗ
   boltLight: 0xe6e9ec,
+  checkpoint: 0x5a616b, // проходная, пока не отметился
   text: '#e6e9ec',
   textMuted: '#9aa3ad',
   textAccent: '#2d6bff',
