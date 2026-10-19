@@ -1,4 +1,5 @@
-import { GAME_WIDTH, COLORS, FONT } from '../config.js';
+import { COLORS } from '../config.js';
+import { showToast } from '../ui/toast.js';
 
 // Чекпоинт — турникет-проходная. Пробежал через него — «отметился»,
 // и после потери здоровья появляешься здесь, а не в начале уровня.
@@ -28,23 +29,7 @@ export default class Checkpoint {
     this.scene.tweens.add({ targets: this.arm, angle: -80, duration: 200 });
 
     // Пол героя пока не выбирается. Когда появится выбор — для героини «Отметилась».
-    const label = this.scene.add
-      .text(GAME_WIDTH / 2, 36, 'Отметился на проходной!', {
-        fontFamily: FONT.family,
-        fontSize: '10px',
-        color: COLORS.text,
-      })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(100);
-    this.scene.tweens.add({
-      targets: label,
-      y: label.y - 8,
-      alpha: 0,
-      delay: 900,
-      duration: 600,
-      onComplete: () => label.destroy(),
-    });
+    showToast(this.scene, 'Отметился на проходной!');
     return true;
   }
 }

@@ -4,8 +4,10 @@ import Controls from '../input/Controls.js';
 import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
 import Checkpoint from '../objects/Checkpoint.js';
+import Washer from '../objects/Washer.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
+import { showToast } from '../ui/toast.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
 // Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
@@ -77,6 +79,9 @@ const BOLTS = [
 const CHECKPOINT_X = 97 * TILE + TILE / 2;
 const START_X = 48;
 
+// Шайба Гроверная лежит сразу после первого ряда болтов, до первых препятствий
+const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
+
 const FINISH_X = 192 * TILE;
 
 export default class LevelScene extends Phaser.Scene {
@@ -94,6 +99,8 @@ export default class LevelScene extends Phaser.Scene {
     this.invulnerableUntil = -Infinity;
     this.controlLockedUntil = -Infinity;
     this.boltCount = 0;
+    this.hasWasher = false;
+    this.airJumpUsed = false;
     this.spawn = { x: START_X, y: GROUND_TOP - PLAYER.height / 2 };
 
     this.platforms = [];
@@ -128,6 +135,9 @@ export default class LevelScene extends Phaser.Scene {
     );
 
     this.physics.add.overlap(this.player, this.checkpoint.zone, () => this.reachCheckpoint());
+
+    this.washer = new Washer(this, WASHER_POS.x, WASHER_POS.y);
+    this.physics.add.overlap(this.player, this.washer.sprite, () => this.pickWasher());
 
     this.bolts = [];
     BOLTS.forEach(([tx, row, count, lift = 0]) => {
@@ -198,6 +208,13 @@ export default class LevelScene extends Phaser.Scene {
     });
   }
 
+  pickWasher() {
+    if (this.hasWasher || this.dead) return;
+    this.hasWasher = true;
+    this.washer.attach();
+    showToast(this, 'Шайба Гроверная теперь с тобой!\nВ воздухе прыгни ещё раз — двойной прыжок', { hold: 2500 });
+  }
+
   reachCheckpoint() {
     if (this.dead || !this.checkpoint.activate()) return;
     this.spawn = { x: this.checkpoint.x, y: GROUND_TOP - PLAYER.height / 2 };
@@ -229,6 +246,7 @@ export default class LevelScene extends Phaser.Scene {
       this.respawn();
     }
     this.enemies.forEach((e) => e.update());
+    this.washer.update(this.player, this.facing, delta);
     if (this.finished || this.dead) return;
 
     const body = this.player.body;
@@ -239,8 +257,12 @@ export default class LevelScene extends Phaser.Scene {
     // После удара герой отлетает и пару мгновений не слушается кнопок
     const locked = time < this.controlLockedUntil;
 
-    if (onGround) this.lastGroundedAt = time;
-    if (c.jumpPressed() && !locked) this.jumpQueuedAt = time;
+    if (onGround) {
+      this.lastGroundedAt = time;
+      this.airJumpUsed = false;
+    }
+    const jumpPressed = c.jumpPressed() && !locked;
+    if (jumpPressed) this.jumpQueuedAt = time;
 
     // Бег с плавным разгоном и торможением
     const dir = locked ? 0 : (c.right ? 1 : 0) - (c.left ? 1 : 0);
@@ -258,6 +280,13 @@ export default class LevelScene extends Phaser.Scene {
       this.lastGroundedAt = -Infinity;
       this.jumpQueuedAt = -Infinity;
       this.jumpCut = false;
+    } else if (jumpPressed && !canJump && this.hasWasher && !this.airJumpUsed) {
+      // Двойной прыжок с Шайбой: одно нажатие в воздухе, до приземления
+      body.setVelocityY(-PLAYER.airJumpVelocity);
+      this.airJumpUsed = true;
+      this.jumpQueuedAt = -Infinity;
+      this.jumpCut = false;
+      this.washer.pulse();
     }
 
     // Отпустил прыжок, пока летит вверх — прыжок ниже
@@ -320,6 +349,8 @@ export default class LevelScene extends Phaser.Scene {
     this.lastGroundedAt = -Infinity;
     this.jumpQueuedAt = -Infinity;
     this.jumpCut = true;
+    this.airJumpUsed = false;
+    this.washer.snapTo(this.player, this.facing);
     this.controls.reset();
     touch.setVisible(true);
 

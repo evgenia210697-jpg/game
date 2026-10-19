@@ -16,6 +16,7 @@ export const COLORS = {
   bolt: 0x9aa3ad, // цвета болта из примера сетки в ТЗ
   boltLight: 0xe6e9ec,
   checkpoint: 0x5a616b, // проходная, пока не отметился
+  washer: 0x8fb4ff, // Шайба Гроверная — светло-синяя, «своя», как герой
   text: '#e6e9ec',
   textMuted: '#9aa3ad',
   textAccent: '#2d6bff',
@@ -29,6 +30,7 @@ export const PLAYER = {
   groundAccel: 1400, // px/с² — как быстро разгоняется и тормозит на земле
   airAccel: 900, // px/с² — управление в воздухе
   jumpVelocity: 330, // ≈ 60 px высоты прыжка, почти 4 тайла
+  airJumpVelocity: 300, // второй прыжок в воздухе (с Шайбой) — ≈ 50 px, чуть ниже первого
   jumpCutFactor: 0.45, // отпустил прыжок раньше — прыжок ниже
   maxFallSpeed: 420,
   coyoteTime: 100, // мс: можно прыгнуть чуть позже, чем сошёл с края
