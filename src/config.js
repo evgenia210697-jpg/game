@@ -11,6 +11,8 @@ export const COLORS = {
   ground: 0x3a3f47,
   groundTop: 0x5a616b,
   platform: 0x4a505a,
+  enemy: 0xc8642a, // ржавый оранжевый — армия Коррозии
+  healthEmpty: 0x3a3f47,
   text: '#e6e9ec',
   textMuted: '#9aa3ad',
   textAccent: '#2d6bff',
@@ -28,6 +30,18 @@ export const PLAYER = {
   maxFallSpeed: 420,
   coyoteTime: 100, // мс: можно прыгнуть чуть позже, чем сошёл с края
   jumpBuffer: 120, // мс: нажал прыжок чуть раньше приземления — всё равно прыгнет
+  maxHealth: 3, // деления здоровья (ТЗ, раздел 3)
+  invulnTime: 1000, // мс неуязвимости после удара — герой мигает
+  hurtLockTime: 250, // мс без управления после удара, пока отлетает
+  knockbackX: 140,
+  knockbackY: 200,
+};
+
+// Враг-заглушка для серого прототипа: ходит туда-сюда между двумя точками
+export const ENEMY = {
+  width: 16,
+  height: 16,
+  speed: 40, // px/с
 };
 
 export const GRAVITY = 900;
