@@ -18,11 +18,11 @@ export default class PauseScene extends Phaser.Scene {
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.bg, 0.8).setOrigin(0);
 
     this.add
-      .text(cx, 80, 'Пауза', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
+      .text(cx, 72, 'Пауза', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
       .setOrigin(0.5);
 
-    createButton(this, cx, 130, 'Продолжить', () => this.resumeGame());
-    createButton(this, cx, 162, 'В меню', () => this.toMenu());
+    createButton(this, cx, 122, 'Продолжить', () => this.resumeGame());
+    createButton(this, cx, 166, 'В меню', () => this.toMenu());
 
     this.input.keyboard.on('keydown-ESC', () => this.resumeGame());
     this.input.keyboard.on('keydown-ENTER', () => this.resumeGame());

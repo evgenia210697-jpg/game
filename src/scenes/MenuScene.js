@@ -22,7 +22,7 @@ export default class MenuScene extends Phaser.Scene {
       .text(cx, 100, 'серый прототип', { fontFamily: FONT.family, fontSize: '10px', color: COLORS.textMuted })
       .setOrigin(0.5);
 
-    createButton(this, cx, 150, 'Играть', () => this.startGame());
+    createButton(this, cx, 156, 'Играть', () => this.startGame());
 
     const hint = isTouchDevice
       ? 'Кнопки на экране: ◀ ▶ — бег, ▲ — прыжок, E — действие'

@@ -23,18 +23,18 @@ export default class DeathScene extends Phaser.Scene {
 
     // Пол героя пока не выбирается. Когда появится выбор — для героини «Ушла на перерыв».
     this.add
-      .text(cx, 70, 'Ушёл на перерыв.', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
+      .text(cx, 54, 'Ушёл на перерыв.', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
       .setOrigin(0.5);
     this.add
-      .text(cx, 96, 'Вернёшься?', { fontFamily: FONT.family, fontSize: '14px', color: COLORS.textMuted })
+      .text(cx, 80, 'Вернёшься?', { fontFamily: FONT.family, fontSize: '14px', color: COLORS.textMuted })
       .setOrigin(0.5);
 
-    createButton(this, cx, 140, 'Вернуться', () => this.comeBack());
-    createButton(this, cx, 172, 'В меню', () => this.toMenu());
+    createButton(this, cx, 126, 'Вернуться', () => this.comeBack());
+    createButton(this, cx, 170, 'В меню', () => this.toMenu());
 
     const where = this.fromCheckpoint ? 'Продолжишь с проходной' : 'Продолжишь с начала уровня';
     this.add
-      .text(cx, 204, where, { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
+      .text(cx, 210, where, { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
       .setOrigin(0.5);
 
     // Повторы от зажатой клавиши пропускаем: держал прыжок в момент смерти — экран не должен сразу закрыться
