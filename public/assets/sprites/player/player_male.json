@@ -1,5 +1,5 @@
 {
-  "frameWidth": 16,
+  "frameWidth": 24,
   "frameHeight": 32,
   "origin": "низ по центру",
   "animations": {
