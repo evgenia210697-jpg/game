@@ -17,6 +17,8 @@ export const COLORS = {
   boltLight: 0xe6e9ec,
   checkpoint: 0x5a616b, // проходная, пока не отметился
   helmet: 0xf2c94c, // бонус Каска — жёлтая строительная, чтобы не путать с синей каской героя
+  coffee: 0xc08552, // бонус Кофе
+  coffeeLight: 0xf0e2c8,
   washer: 0x8fb4ff, // Шайба Гроверная — светло-синяя, «своя», как герой
   text: '#e6e9ec',
   textMuted: '#9aa3ad',
@@ -41,6 +43,11 @@ export const PLAYER = {
   hurtLockTime: 250, // мс без управления после удара, пока отлетает
   knockbackX: 140,
   knockbackY: 200,
+};
+
+// Бонусы с таймером (ТЗ, раздел 3). Длительности стартовые — уточняются на тестах.
+export const BONUS = {
+  coffee: { duration: 8000, speedMultiplier: 1.5 }, // 120 → 180 px/с
 };
 
 // Враг-заглушка для серого прототипа: ходит туда-сюда между двумя точками

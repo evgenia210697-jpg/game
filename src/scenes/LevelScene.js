@@ -1,13 +1,15 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER, BONUS } from '../config.js';
 import Controls from '../input/Controls.js';
 import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
 import Checkpoint from '../objects/Checkpoint.js';
 import Washer from '../objects/Washer.js';
 import Helmet from '../objects/Helmet.js';
+import Coffee from '../objects/Coffee.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
+import BuffBar from '../ui/BuffBar.js';
 import { showToast } from '../ui/toast.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
@@ -83,6 +85,9 @@ const START_X = 48;
 // Каски: в тайлах по X, лежат над землёй. Первая — перед первым врагом, вторая — после проходной.
 const HELMETS = [43, 118];
 
+// Кофе: в тайлах по X, перед длинными ровными участками, где скорость в радость
+const COFFEES = [77, 146];
+
 // Шайба Гроверная лежит сразу после первого ряда болтов, до первых препятствий
 const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
 
@@ -105,6 +110,8 @@ export default class LevelScene extends Phaser.Scene {
     this.boltCount = 0;
     this.hasWasher = false;
     this.hasHelmet = false;
+    // Действующие бонусы с таймером: имя → { remaining, duration, color }, время в мс
+    this.buffs = new Map();
     this.airJumpUsed = false;
     this.spawn = { x: START_X, y: GROUND_TOP - PLAYER.height / 2 };
 
@@ -144,6 +151,9 @@ export default class LevelScene extends Phaser.Scene {
     this.helmets = HELMETS.map((tx) => new Helmet(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.helmets.forEach((h) => this.physics.add.overlap(this.player, h.zone, () => this.pickHelmet(h)));
 
+    this.coffees = COFFEES.map((tx) => new Coffee(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.coffees.forEach((c) => this.physics.add.overlap(this.player, c.zone, () => this.pickCoffee(c)));
+
     // Каска на голове героя — видно, что защита есть
     this.headHelmet = this.add.rectangle(0, 0, 18, 5, COLORS.helmet).setVisible(false);
 
@@ -166,6 +176,7 @@ export default class LevelScene extends Phaser.Scene {
 
     this.healthBar = new HealthBar(this, 6, 6, PLAYER.maxHealth);
     this.boltCounter = new BoltCounter(this, 58, 5);
+    this.buffBar = new BuffBar(this, 6, 16);
     this.add
       .text(112, 4, 'Серый уровень', { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
       .setScrollFactor(0);
@@ -256,6 +267,28 @@ export default class LevelScene extends Phaser.Scene {
     });
   }
 
+  pickCoffee(coffee) {
+    if (this.dead) return;
+    coffee.take();
+    // Второй кофе, пока действует первый, — снова полные 8 секунд
+    this.addBuff('coffee', BONUS.coffee.duration, COLORS.coffee);
+    showToast(this, 'Кофе! 8 секунд бегаешь быстрее');
+  }
+
+  addBuff(name, duration, color) {
+    this.buffs.set(name, { remaining: duration, duration, color });
+  }
+
+  // Время бонусов считаем по кадрам, а не по часам сцены:
+  // часы идут и во время паузы, а бонус на паузе тратиться не должен
+  tickBuffs(delta) {
+    for (const [name, buff] of this.buffs) {
+      buff.remaining -= delta;
+      if (buff.remaining <= 0) this.buffs.delete(name);
+    }
+    this.buffBar.update(this.buffs);
+  }
+
   pickWasher() {
     if (this.hasWasher || this.dead) return;
     this.hasWasher = true;
@@ -295,6 +328,7 @@ export default class LevelScene extends Phaser.Scene {
     }
     this.enemies.forEach((e) => e.update());
     this.washer.update(this.player, this.facing, delta);
+    this.tickBuffs(delta);
     if (this.finished || this.dead) return;
 
     const body = this.player.body;
@@ -316,8 +350,9 @@ export default class LevelScene extends Phaser.Scene {
     const dir = locked ? 0 : (c.right ? 1 : 0) - (c.left ? 1 : 0);
     if (dir !== 0) this.facing = dir;
     if (!locked) {
-      const accel = onGround ? PLAYER.groundAccel : PLAYER.airAccel;
-      body.setVelocityX(approach(body.velocity.x, dir * PLAYER.runSpeed, accel * dt));
+      const boost = this.buffs.has('coffee') ? BONUS.coffee.speedMultiplier : 1;
+      const accel = (onGround ? PLAYER.groundAccel : PLAYER.airAccel) * boost;
+      body.setVelocityX(approach(body.velocity.x, dir * PLAYER.runSpeed * boost, accel * dt));
     }
 
     // Прыжок с запасом по времени: «койот» и буфер нажатия — прощают неточность
@@ -369,6 +404,8 @@ export default class LevelScene extends Phaser.Scene {
       body.moves = false;
       this.tweens.killTweensOf(this.player);
       this.player.setAlpha(1).setFillStyle(COLORS.enemy);
+      // Бонусы с таймером сгорают вместе с «перерывом»
+      this.buffs.clear();
       touch.setVisible(false);
       this.time.delayedCall(700, () => this.showDeathScreen());
       return;
