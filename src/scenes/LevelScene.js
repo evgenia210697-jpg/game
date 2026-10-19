@@ -7,6 +7,7 @@ import Checkpoint from '../objects/Checkpoint.js';
 import Washer from '../objects/Washer.js';
 import Helmet from '../objects/Helmet.js';
 import Coffee from '../objects/Coffee.js';
+import Tape from '../objects/Tape.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
@@ -88,6 +89,9 @@ const HELMETS = [43, 118];
 // Кофе: в тайлах по X, перед длинными ровными участками, где скорость в радость
 const COFFEES = [77, 146];
 
+// Изолента: в тайлах по X. Первая — с запасом до первого врага, вторая — перед последним
+const TAPES = [29, 164];
+
 // Шайба Гроверная лежит сразу после первого ряда болтов, до первых препятствий
 const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
 
@@ -154,6 +158,15 @@ export default class LevelScene extends Phaser.Scene {
     this.coffees = COFFEES.map((tx) => new Coffee(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.coffees.forEach((c) => this.physics.add.overlap(this.player, c.zone, () => this.pickCoffee(c)));
 
+    this.tapes = TAPES.map((tx) => new Tape(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.tapes.forEach((t) => this.physics.add.overlap(this.player, t.zone, () => this.pickTape(t)));
+
+    // Щит Изоленты — рамка вокруг героя
+    this.shield = this.add
+      .rectangle(0, 0, PLAYER.width + 6, PLAYER.height + 6)
+      .setStrokeStyle(1, COLORS.tape)
+      .setVisible(false);
+
     // Каска на голове героя — видно, что защита есть
     this.headHelmet = this.add.rectangle(0, 0, 18, 5, COLORS.helmet).setVisible(false);
 
@@ -191,12 +204,12 @@ export default class LevelScene extends Phaser.Scene {
 
     this.events.on(Phaser.Scenes.Events.RESUME, this.onResume, this);
     // Каску двигаем после шага физики, иначе она отстаёт от головы на кадр
-    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncHeadHelmet, this);
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncAttached, this);
 
     // Подписки на события сцены переживают перезапуск сцены — снимаем их вручную
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off(Phaser.Scenes.Events.RESUME, this.onResume, this);
-      this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncHeadHelmet, this);
+      this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncAttached, this);
       this.game.events.off('touch-pause', this.openPause, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.openPause, this);
       touch.setVisible(false);
@@ -245,12 +258,23 @@ export default class LevelScene extends Phaser.Scene {
     this.hasHelmet = on;
     this.headHelmet.setVisible(on);
     this.healthBar.setHelmet(on);
-    this.syncHeadHelmet();
+    this.syncAttached();
   }
 
-  syncHeadHelmet() {
-    if (!this.hasHelmet) return;
-    this.headHelmet.setPosition(this.player.x, this.player.y - PLAYER.height / 2 - 1).setAlpha(this.player.alpha);
+  // Всё, что «приклеено» к герою: каска на голове и рамка щита
+  syncAttached() {
+    const { x, y } = this.player;
+    if (this.hasHelmet) {
+      this.headHelmet.setPosition(x, y - PLAYER.height / 2 - 1).setAlpha(this.player.alpha);
+    }
+
+    const tape = this.buffs.get('tape');
+    this.shield.setVisible(Boolean(tape));
+    if (tape) {
+      // За 2 секунды до конца щит мигает, как и его полоска
+      const ending = tape.remaining < 2000 && Math.floor(tape.remaining / 150) % 2 === 0;
+      this.shield.setPosition(x, y).setAlpha(ending ? 0.3 : 1);
+    }
   }
 
   // Каска принимает удар и слетает с головы
@@ -273,6 +297,13 @@ export default class LevelScene extends Phaser.Scene {
     // Второй кофе, пока действует первый, — снова полные 8 секунд
     this.addBuff('coffee', BONUS.coffee.duration, COLORS.coffee);
     showToast(this, 'Кофе! 8 секунд бегаешь быстрее');
+  }
+
+  pickTape(tape) {
+    if (this.dead) return;
+    tape.take();
+    this.addBuff('tape', BONUS.tape.duration, COLORS.tape);
+    showToast(this, 'Изолента! 10 секунд враги не страшны');
   }
 
   addBuff(name, duration, color) {
@@ -387,6 +418,8 @@ export default class LevelScene extends Phaser.Scene {
   hurtPlayer(enemy) {
     const now = this.time.now;
     if (this.finished || this.dead || now < this.invulnerableUntil) return;
+    // Под щитом Изоленты враги проходят насквозь: ни урона, ни отбрасывания, каска цела
+    if (this.buffs.has('tape')) return;
 
     // В каске удар забирает каску, а не здоровье
     if (this.hasHelmet) this.loseHelmet();
