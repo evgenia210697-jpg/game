@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "sprites": "node tools/sprites/build.js"
   },
   "repository": {
     "type": "git",
