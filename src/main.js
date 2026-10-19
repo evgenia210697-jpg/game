@@ -5,6 +5,7 @@ import BootScene from './scenes/BootScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import LevelScene from './scenes/LevelScene.js';
 import PauseScene from './scenes/PauseScene.js';
+import DeathScene from './scenes/DeathScene.js';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -27,7 +28,7 @@ const game = new Phaser.Game({
   input: {
     activePointers: 3,
   },
-  scene: [BootScene, MenuScene, LevelScene, PauseScene],
+  scene: [BootScene, MenuScene, LevelScene, PauseScene, DeathScene],
 });
 
 // Масштаб: на ПК — целыми числами (×2, ×3, ×4), чтобы пиксели были ровные.

@@ -89,6 +89,7 @@ export default class LevelScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, worldWidth, GAME_HEIGHT);
     this.finished = false;
     this.dead = false;
+    this.pendingRespawn = false;
     this.health = PLAYER.maxHealth;
     this.invulnerableUntil = -Infinity;
     this.controlLockedUntil = -Infinity;
@@ -202,9 +203,17 @@ export default class LevelScene extends Phaser.Scene {
     this.spawn = { x: this.checkpoint.x, y: GROUND_TOP - PLAYER.height / 2 };
   }
 
-  onResume() {
+  onResume(sys, data) {
     this.controls.reset();
-    touch.setVisible(true);
+    // Вернулись с экрана смерти — появимся в первом кадре после паузы,
+    // когда часы сцены снова идут (иначе неуязвимость посчиталась бы от старого времени)
+    if (data?.respawn) this.pendingRespawn = true;
+    else touch.setVisible(true);
+  }
+
+  showDeathScreen() {
+    this.scene.pause();
+    this.scene.launch('Death', { from: this.scene.key, fromCheckpoint: this.checkpoint.active });
   }
 
   openPause() {
@@ -215,6 +224,10 @@ export default class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this.pendingRespawn) {
+      this.pendingRespawn = false;
+      this.respawn();
+    }
     this.enemies.forEach((e) => e.update());
     if (this.finished || this.dead) return;
 
@@ -268,15 +281,15 @@ export default class LevelScene extends Phaser.Scene {
 
     const body = this.player.body;
     if (this.health <= 0) {
-      // Здоровье кончилось — герой появляется на проходной (или в начале, если не отметился).
-      // Экран «Ушёл на перерыв. Вернёшься?» — отдельной задачей «смерть».
+      // Здоровье кончилось — экран «Ушёл на перерыв. Вернёшься?»,
+      // потом герой появляется на проходной (или в начале, если не отметился).
       this.dead = true;
       body.setVelocity(0, 0);
       body.moves = false;
       this.tweens.killTweensOf(this.player);
       this.player.setAlpha(1).setFillStyle(COLORS.enemy);
       touch.setVisible(false);
-      this.time.delayedCall(700, () => this.respawn());
+      this.time.delayedCall(700, () => this.showDeathScreen());
       return;
     }
 
