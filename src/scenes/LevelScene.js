@@ -5,6 +5,7 @@ import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
 import Checkpoint from '../objects/Checkpoint.js';
 import Washer from '../objects/Washer.js';
+import Helmet from '../objects/Helmet.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import { showToast } from '../ui/toast.js';
@@ -79,6 +80,9 @@ const BOLTS = [
 const CHECKPOINT_X = 97 * TILE + TILE / 2;
 const START_X = 48;
 
+// Каски: в тайлах по X, лежат над землёй. Первая — перед первым врагом, вторая — после проходной.
+const HELMETS = [43, 118];
+
 // Шайба Гроверная лежит сразу после первого ряда болтов, до первых препятствий
 const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
 
@@ -100,6 +104,7 @@ export default class LevelScene extends Phaser.Scene {
     this.controlLockedUntil = -Infinity;
     this.boltCount = 0;
     this.hasWasher = false;
+    this.hasHelmet = false;
     this.airJumpUsed = false;
     this.spawn = { x: START_X, y: GROUND_TOP - PLAYER.height / 2 };
 
@@ -136,6 +141,12 @@ export default class LevelScene extends Phaser.Scene {
 
     this.physics.add.overlap(this.player, this.checkpoint.zone, () => this.reachCheckpoint());
 
+    this.helmets = HELMETS.map((tx) => new Helmet(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.helmets.forEach((h) => this.physics.add.overlap(this.player, h.zone, () => this.pickHelmet(h)));
+
+    // Каска на голове героя — видно, что защита есть
+    this.headHelmet = this.add.rectangle(0, 0, 18, 5, COLORS.helmet).setVisible(false);
+
     this.washer = new Washer(this, WASHER_POS.x, WASHER_POS.y);
     this.physics.add.overlap(this.player, this.washer.sprite, () => this.pickWasher());
 
@@ -154,9 +165,9 @@ export default class LevelScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
 
     this.healthBar = new HealthBar(this, 6, 6, PLAYER.maxHealth);
-    this.boltCounter = new BoltCounter(this, 46, 5);
+    this.boltCounter = new BoltCounter(this, 58, 5);
     this.add
-      .text(100, 4, 'Серый уровень', { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
+      .text(112, 4, 'Серый уровень', { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
       .setScrollFactor(0);
 
     this.controls = new Controls(this);
@@ -168,10 +179,13 @@ export default class LevelScene extends Phaser.Scene {
     this.game.events.on(Phaser.Core.Events.HIDDEN, this.openPause, this);
 
     this.events.on(Phaser.Scenes.Events.RESUME, this.onResume, this);
+    // Каску двигаем после шага физики, иначе она отстаёт от головы на кадр
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.syncHeadHelmet, this);
 
     // Подписки на события сцены переживают перезапуск сцены — снимаем их вручную
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off(Phaser.Scenes.Events.RESUME, this.onResume, this);
+      this.events.off(Phaser.Scenes.Events.POST_UPDATE, this.syncHeadHelmet, this);
       this.game.events.off('touch-pause', this.openPause, this);
       this.game.events.off(Phaser.Core.Events.HIDDEN, this.openPause, this);
       touch.setVisible(false);
@@ -205,6 +219,40 @@ export default class LevelScene extends Phaser.Scene {
       alpha: 0,
       duration: 200,
       onComplete: () => bolt.destroy(),
+    });
+  }
+
+  pickHelmet(helmet) {
+    // Вторую каску не надеть — оставляем её на потом
+    if (this.hasHelmet || this.dead) return;
+    helmet.take();
+    this.setHelmet(true);
+    showToast(this, 'Каска! Выдержит один удар');
+  }
+
+  setHelmet(on) {
+    this.hasHelmet = on;
+    this.headHelmet.setVisible(on);
+    this.healthBar.setHelmet(on);
+    this.syncHeadHelmet();
+  }
+
+  syncHeadHelmet() {
+    if (!this.hasHelmet) return;
+    this.headHelmet.setPosition(this.player.x, this.player.y - PLAYER.height / 2 - 1).setAlpha(this.player.alpha);
+  }
+
+  // Каска принимает удар и слетает с головы
+  loseHelmet() {
+    const flying = this.add.rectangle(this.player.x, this.player.y - PLAYER.height / 2 - 1, 18, 5, COLORS.helmet);
+    this.setHelmet(false);
+    this.tweens.add({
+      targets: flying,
+      y: flying.y - 24,
+      angle: 120,
+      alpha: 0,
+      duration: 500,
+      onComplete: () => flying.destroy(),
     });
   }
 
@@ -305,8 +353,12 @@ export default class LevelScene extends Phaser.Scene {
     const now = this.time.now;
     if (this.finished || this.dead || now < this.invulnerableUntil) return;
 
-    this.health -= 1;
-    this.healthBar.set(this.health);
+    // В каске удар забирает каску, а не здоровье
+    if (this.hasHelmet) this.loseHelmet();
+    else {
+      this.health -= 1;
+      this.healthBar.set(this.health);
+    }
 
     const body = this.player.body;
     if (this.health <= 0) {
