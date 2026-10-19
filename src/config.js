@@ -13,6 +13,8 @@ export const COLORS = {
   platform: 0x4a505a,
   enemy: 0xc8642a, // ржавый оранжевый — армия Коррозии
   healthEmpty: 0x3a3f47,
+  bolt: 0x9aa3ad, // цвета болта из примера сетки в ТЗ
+  boltLight: 0xe6e9ec,
   text: '#e6e9ec',
   textMuted: '#9aa3ad',
   textAccent: '#2d6bff',

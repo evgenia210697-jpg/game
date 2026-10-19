@@ -4,6 +4,7 @@ import Controls from '../input/Controls.js';
 import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
 import HealthBar from '../ui/HealthBar.js';
+import BoltCounter from '../ui/BoltCounter.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
 // Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
@@ -46,6 +47,31 @@ const ENEMIES = [
   [181, 191, GROUND_TOP / TILE],
 ];
 
+// Болты: [первый тайл, верхний ряд поверхности, сколько штук в ряд, подъём над поверхностью в px].
+// Подъём 40 — ряд над врагом: соберёшь, только если перепрыгнешь.
+const GROUND_ROW = GROUND_TOP / TILE;
+const BOLTS = [
+  [4, GROUND_ROW, 6],
+  [12, 13, 2],
+  [18, 12, 4],
+  [25, 10, 3],
+  [31, 8, 4],
+  [38, 11, 3],
+  [51, GROUND_ROW, 6, 40],
+  [72, 10, 4],
+  [80, 12, 3],
+  [86, 11, 3],
+  [92, 12, 3],
+  [103, GROUND_ROW, 6],
+  [120, 13, 2],
+  [128, 12, 2],
+  [132, 11, 2],
+  [140, 9, 5],
+  [150, 11, 3],
+  [158, 12, 4],
+  [183, GROUND_ROW, 6, 40],
+];
+
 const FINISH_X = 192 * TILE;
 
 export default class LevelScene extends Phaser.Scene {
@@ -61,6 +87,7 @@ export default class LevelScene extends Phaser.Scene {
     this.health = PLAYER.maxHealth;
     this.invulnerableUntil = -Infinity;
     this.controlLockedUntil = -Infinity;
+    this.boltCount = 0;
 
     this.platforms = [];
     this.addSolid(0, GROUND_TOP, worldWidth, GAME_HEIGHT - GROUND_TOP, COLORS.ground);
@@ -91,6 +118,14 @@ export default class LevelScene extends Phaser.Scene {
       (player, enemy) => this.hurtPlayer(enemy),
     );
 
+    this.bolts = [];
+    BOLTS.forEach(([tx, row, count, lift = 0]) => {
+      for (let i = 0; i < count; i++) {
+        this.addBolt((tx + i) * TILE + TILE / 2, row * TILE - 12 - lift);
+      }
+    });
+    this.physics.add.overlap(this.player, this.bolts, (player, bolt) => this.collectBolt(bolt));
+
     // «Действие» — пока просто вспышка перед героем, чтобы проверить кнопку
     this.actionFx = this.add.rectangle(0, 0, 10, 6, COLORS.groundTop).setVisible(false);
 
@@ -98,8 +133,9 @@ export default class LevelScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
 
     this.healthBar = new HealthBar(this, 6, 6, PLAYER.maxHealth);
+    this.boltCounter = new BoltCounter(this, 46, 5);
     this.add
-      .text(46, 4, 'Серый уровень', { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
+      .text(100, 4, 'Серый уровень', { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
       .setScrollFactor(0);
 
     this.controls = new Controls(this);
@@ -127,6 +163,28 @@ export default class LevelScene extends Phaser.Scene {
     this.physics.add.existing(rect, true);
     this.platforms.push(rect);
     return rect;
+  }
+
+  addBolt(x, y) {
+    const bolt = this.add.circle(x, y, 4, COLORS.bolt).setStrokeStyle(1, COLORS.boltLight);
+    this.physics.add.existing(bolt, true);
+    this.bolts.push(bolt);
+  }
+
+  collectBolt(bolt) {
+    if (this.dead) return;
+    this.physics.world.disable(bolt);
+    this.boltCount += 1;
+    this.boltCounter.set(this.boltCount);
+
+    // Болт взлетает и тает
+    this.tweens.add({
+      targets: bolt,
+      y: bolt.y - 10,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => bolt.destroy(),
+    });
   }
 
   onResume() {
