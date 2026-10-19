@@ -6,7 +6,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "sprites": "node tools/sprites/build.js"
+    "sprites": "node tools/sprites/build.js && node tools/sprites/backgrounds.js"
   },
   "repository": {
     "type": "git",

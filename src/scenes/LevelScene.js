@@ -14,6 +14,7 @@ import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
 import { showToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
+import { frameOf } from '../gfx/art.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
 // Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
@@ -102,6 +103,13 @@ const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
 
 const FINISH_X = 192 * TILE;
 
+// Склад: тайлсет и слои фона. Чем меньше коэффициент, тем дальше слой и медленнее он движется
+const TILESET = 'tiles_warehouse';
+const BACKGROUND = [
+  { key: 'bg_warehouse_wall', parallax: 0.15 },
+  { key: 'bg_warehouse_racks', parallax: 0.4 },
+];
+
 export default class LevelScene extends Phaser.Scene {
   constructor() {
     super('Level');
@@ -124,9 +132,15 @@ export default class LevelScene extends Phaser.Scene {
     this.airJumpUsed = false;
     this.spawn = { x: START_X, y: GROUND_TOP - PLAYER.height / 2 };
 
+    // Фон: слои во весь экран, прокрутка — в updateParallax()
+    this.background = BACKGROUND.map(({ key, parallax }) => ({
+      parallax,
+      sprite: this.add.tileSprite(0, 0, GAME_WIDTH, GROUND_TOP, key).setOrigin(0).setScrollFactor(0),
+    }));
+
     this.platforms = [];
-    this.addSolid(0, GROUND_TOP, worldWidth, GAME_HEIGHT - GROUND_TOP, COLORS.ground);
-    PLATFORMS.forEach(([x, y, w, h]) => this.addSolid(x * TILE, y * TILE, w * TILE, h * TILE, COLORS.platform));
+    this.addSolid(0, GROUND_TOP, worldWidth, GAME_HEIGHT - GROUND_TOP, 'ground');
+    PLATFORMS.forEach(([x, y, w, h]) => this.addSolid(x * TILE, y * TILE, w * TILE, h * TILE));
 
     // Финиш
     this.add.rectangle(FINISH_X, GROUND_TOP, 4, 64, COLORS.accent).setOrigin(0.5, 1);
@@ -198,12 +212,12 @@ export default class LevelScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, worldWidth, GAME_HEIGHT);
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
 
+    // Панель под здоровьем и болтами — чтобы читались на любом фоне
+    this.add.rectangle(2, 2, 96, 15, COLORS.bg, 0.85).setOrigin(0).setStrokeStyle(1, COLORS.ground).setScrollFactor(0).setDepth(99);
     this.healthBar = new HealthBar(this, 6, 6, PLAYER.maxHealth);
-    this.boltCounter = new BoltCounter(this, 58, 5);
-    this.buffBar = new BuffBar(this, 6, 16);
-    this.add
-      .text(112, 4, 'Серый уровень', { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
-      .setScrollFactor(0);
+    this.boltCounter = new BoltCounter(this, 58, 6);
+    this.buffBar = new BuffBar(this, 6, 21);
+    showToast(this, 'Склад — проверка стиля');
 
     this.controls = new Controls(this);
     touch.setVisible(true);
@@ -227,16 +241,40 @@ export default class LevelScene extends Phaser.Scene {
     });
   }
 
-  addSolid(x, y, w, h, color) {
-    const rect = this.add.rectangle(x, y, w, h, color).setOrigin(0);
-    this.add.rectangle(x, y, w, 2, COLORS.groundTop).setOrigin(0);
+  // Твёрдая опора: невидимый прямоугольник для физики + тайлы склада поверх.
+  // Пол — бетон с разметкой, платформа в один тайл — стеллажная балка, выше — коробки.
+  addSolid(x, y, w, h, kind = 'platform') {
+    const rect = this.add.rectangle(x, y, w, h).setOrigin(0).setVisible(false);
     this.physics.add.existing(rect, true);
     this.platforms.push(rect);
+
+    const tile = (name, tx, ty, tw = TILE, th = TILE) =>
+      this.add.tileSprite(tx, ty, tw, th, TILESET, frameOf(this, TILESET, name)).setOrigin(0);
+
+    if (kind === 'ground') {
+      tile('floor_top', x, y, w, TILE);
+      tile('floor_fill', x, y + TILE, w, h - TILE);
+    } else if (h === TILE) {
+      tile('shelf_left', x, y);
+      if (w > 2 * TILE) tile('shelf_mid', x + TILE, y, w - 2 * TILE);
+      tile('shelf_right', x + w - TILE, y);
+    } else {
+      // Коробки: изредка — с синей наклейкой, чтобы стопка не была однообразной
+      for (let ty = y; ty < y + h; ty += TILE)
+        for (let tx = x; tx < x + w; tx += TILE)
+          tile((tx / TILE + 2 * (ty / TILE)) % 5 === 0 ? 'box_b' : 'box_a', tx, ty);
+    }
     return rect;
   }
 
+  updateParallax() {
+    const scrollX = this.cameras.main.scrollX;
+    for (const layer of this.background) layer.sprite.tilePositionX = scrollX * layer.parallax;
+  }
+
   addBolt(x, y) {
-    const bolt = this.add.circle(x, y, 4, COLORS.bolt).setStrokeStyle(1, COLORS.boltLight);
+    // Блик у соседних болтов — в разные моменты, чтобы ряд «переливался»
+    const bolt = this.add.sprite(x, y, 'bolt').play({ key: 'bolt:shine', startFrame: Math.floor(x / TILE) % 6 });
     this.physics.add.existing(bolt, true);
     this.bolts.push(bolt);
   }
@@ -410,6 +448,7 @@ export default class LevelScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    this.updateParallax();
     if (this.pendingRespawn) {
       this.pendingRespawn = false;
       this.respawn();

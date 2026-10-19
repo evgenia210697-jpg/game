@@ -1,0 +1,32 @@
+# Деления здоровья: полное (синее), потерянное (серое), Каска-бонус (жёлтое). 10×7.
+size 10x7
+
+anim cell_full 1 once
+frame
+KKKKKKKKKK
+KLbbbbbbBK
+KbBBBBBBnK
+KBBBBBBBnK
+KBBBBBBnNK
+KnnnnnnNNK
+KKKKKKKKKK
+
+anim cell_empty 1 once
+frame
+KKKKKKKKKK
+K2111111dK
+K1ddddddDK
+KdddddddDK
+KddddddDDK
+KDDDDDDDDK
+KKKKKKKKKK
+
+anim cell_helmet 1 once
+frame
+KKKKKKKKKK
+KZZZZZZZYK
+KZYYYYYYyK
+KYYYYYYYyK
+KYYYYYYyyK
+KyyyyyyyyK
+KKKKKKKKKK

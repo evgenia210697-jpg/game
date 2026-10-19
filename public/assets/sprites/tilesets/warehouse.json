@@ -1,0 +1,56 @@
+{
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "origin": "низ по центру",
+  "animations": {
+    "floor_top": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "floor_fill": {
+      "frames": [
+        1
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "shelf_left": {
+      "frames": [
+        2
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "shelf_mid": {
+      "frames": [
+        3
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "shelf_right": {
+      "frames": [
+        4
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "box_a": {
+      "frames": [
+        5
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "box_b": {
+      "frames": [
+        6
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}
