@@ -1,0 +1,38 @@
+// Общие константы игры. Значения из ТЗ (docs/TZ.md, раздел 7).
+
+export const GAME_WIDTH = 480;
+export const GAME_HEIGHT = 270;
+export const TILE = 16;
+
+// Цвета серого прототипа. Итоговая палитра на 32–48 цветов — на этапе «Стиль и графика».
+export const COLORS = {
+  bg: 0x16181c,
+  accent: 0x2d6bff, // каска героя, интерфейс
+  ground: 0x3a3f47,
+  groundTop: 0x5a616b,
+  platform: 0x4a505a,
+  text: '#e6e9ec',
+  textMuted: '#9aa3ad',
+  textAccent: '#2d6bff',
+};
+
+// Настройки движения героя. Подбираются на тестах.
+export const PLAYER = {
+  width: 16,
+  height: 32,
+  runSpeed: 120, // px/с
+  groundAccel: 1400, // px/с² — как быстро разгоняется и тормозит на земле
+  airAccel: 900, // px/с² — управление в воздухе
+  jumpVelocity: 330, // ≈ 60 px высоты прыжка, почти 4 тайла
+  jumpCutFactor: 0.45, // отпустил прыжок раньше — прыжок ниже
+  maxFallSpeed: 420,
+  coyoteTime: 100, // мс: можно прыгнуть чуть позже, чем сошёл с края
+  jumpBuffer: 120, // мс: нажал прыжок чуть раньше приземления — всё равно прыгнет
+};
+
+export const GRAVITY = 900;
+
+export const FONT = {
+  // Временный шрифт. Нужен пиксельный с кириллицей и коммерческой лицензией (ТЗ, раздел 7).
+  family: 'monospace',
+};

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#16181c" />
+  <title>Заказ горит!</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- Экранные кнопки: видны только на сенсорных устройствах во время уровня -->
+  <div id="touch" hidden>
+    <div class="touch-left">
+      <button type="button" data-btn="left" aria-label="Влево">◀</button>
+      <button type="button" data-btn="right" aria-label="Вправо">▶</button>
+    </div>
+    <div class="touch-right">
+      <button type="button" data-btn="action" aria-label="Действие">E</button>
+      <button type="button" data-btn="jump" aria-label="Прыжок">▲</button>
+    </div>
+    <button type="button" class="touch-pause" data-btn="pause" aria-label="Пауза">II</button>
+  </div>
+
+  <div id="rotate">
+    <div class="rotate-icon">⟳</div>
+    <p>Поверни телефон горизонтально</p>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

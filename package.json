@@ -1,0 +1,26 @@
+{
+  "name": "zakaz-gorit",
+  "version": "0.1.0",
+  "description": "Браузерная пиксельная игра «Заказ горит!»",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evgenia210697-jpg/game.git"
+  },
+  "bugs": {
+    "url": "https://github.com/evgenia210697-jpg/game/issues"
+  },
+  "homepage": "https://github.com/evgenia210697-jpg/game#readme",
+  "dependencies": {
+    "phaser": "^4.2.1"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
+  },
+  "private": true,
+  "type": "module"
+}
