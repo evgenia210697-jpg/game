@@ -13,6 +13,7 @@ import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
 import { showToast } from '../ui/toast.js';
+import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
 // Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
@@ -135,9 +136,14 @@ export default class LevelScene extends Phaser.Scene {
 
     this.checkpoint = new Checkpoint(this, CHECKPOINT_X, GROUND_TOP);
 
-    // Герой — пока синий прямоугольник 16×32
-    this.player = this.add.rectangle(this.spawn.x, this.spawn.y, PLAYER.width, PLAYER.height, COLORS.accent);
+    // Герой — спрайт 24×32, физическое тело 16×32 по центру: каска и руки выходят за тело по бокам
+    this.hero = this.registry.get('hero') ?? 'male';
+    this.heroTex = heroTexture(this, this.hero);
+    this.actingUntil = -Infinity;
+    this.player = this.add.sprite(this.spawn.x, this.spawn.y, this.heroTex);
     this.physics.add.existing(this.player);
+    this.player.body.setSize(PLAYER.width, PLAYER.height);
+    this.playHeroAnim('idle');
     this.player.body.setCollideWorldBounds(true);
     this.player.body.setMaxVelocity(1000, PLAYER.maxFallSpeed);
     this.facing = 1;
@@ -171,12 +177,9 @@ export default class LevelScene extends Phaser.Scene {
 
     // Щит Изоленты или Покраски — рамка вокруг героя
     this.shield = this.add
-      .rectangle(0, 0, PLAYER.width + 6, PLAYER.height + 6)
+      .rectangle(0, 0, HERO_FRAME.width + 4, PLAYER.height + 6)
       .setStrokeStyle(1, COLORS.tape)
       .setVisible(false);
-
-    // Каска на голове героя — видно, что защита есть
-    this.headHelmet = this.add.rectangle(0, 0, 18, 5, COLORS.helmet).setVisible(false);
 
     this.washer = new Washer(this, WASHER_POS.x, WASHER_POS.y);
     this.physics.add.overlap(this.player, this.washer.sprite, () => this.pickWasher());
@@ -264,21 +267,17 @@ export default class LevelScene extends Phaser.Scene {
 
   setHelmet(on) {
     this.hasHelmet = on;
-    this.headHelmet.setVisible(on);
     this.healthBar.setHelmet(on);
     this.syncAttached();
   }
 
-  // Всё, что «приклеено» к герою: каска на голове и рамка щита
+  // Всё, что меняет вид героя: цвета (Каска-бонус, Покраска) и рамка щита
   syncAttached() {
     const { x, y } = this.player;
-    if (this.hasHelmet) {
-      this.headHelmet.setPosition(x, y - PLAYER.height / 2 - 1).setAlpha(this.player.alpha);
-    }
 
-    // Покраска: пока действует — герой в новом цвете
+    // Каска-бонус — каска героя жёлтая; Покраска — герой в цвете покраски
     const paint = this.buffs.get('paint');
-    if (!this.dead) this.player.setFillStyle(paint ? this.paintColor : COLORS.accent);
+    this.setHeroTexture(heroTexture(this, this.hero, { helmet: this.hasHelmet, paint: paint ? this.paintColor : null }));
 
     // Рамка щита — цвета того бонуса, что продержится дольше
     const tape = this.buffs.get('tape');
@@ -294,13 +293,39 @@ export default class LevelScene extends Phaser.Scene {
     }
   }
 
+  // Анимация героя по имени: idle, run, jump, fall, action, hurt, victory
+  playHeroAnim(name) {
+    const key = `${this.heroTex}:${name}`;
+    if (this.player.anims.currentAnim?.key !== key) this.player.play(key);
+  }
+
+  // Смена цветов героя на лету — та же анимация продолжается на новой текстуре
+  setHeroTexture(key) {
+    if (key === this.heroTex) return;
+    const anim = this.player.anims.currentAnim?.key.split(':')[1] ?? 'idle';
+    const frame = this.player.anims.currentFrame?.index ?? 1;
+    this.heroTex = key;
+    this.player.play({ key: `${key}:${anim}`, startFrame: frame - 1 });
+  }
+
+  // Какую анимацию показывать — по тому, что герой сейчас делает
+  updateHeroAnim(onGround, locked) {
+    const body = this.player.body;
+    this.player.setFlipX(this.facing < 0);
+    if (locked) this.playHeroAnim('hurt');
+    else if (this.time.now < this.actingUntil) this.playHeroAnim('action');
+    else if (!onGround) this.playHeroAnim(body.velocity.y < 0 ? 'jump' : 'fall');
+    else this.playHeroAnim(Math.abs(body.velocity.x) > 20 ? 'run' : 'idle');
+  }
+
   isShielded() {
     return this.buffs.has('tape') || this.buffs.has('paint');
   }
 
   // Каска принимает удар и слетает с головы
   loseHelmet() {
-    const flying = this.add.rectangle(this.player.x, this.player.y - PLAYER.height / 2 - 1, 18, 5, COLORS.helmet);
+    // Слетает жёлтая «скорлупа» каски, а на герое снова его синяя
+    const flying = this.add.arc(this.player.x, this.player.y - PLAYER.height / 2 + 6, 8, 180, 360, false, COLORS.helmet);
     this.setHelmet(false);
     this.tweens.add({
       targets: flying,
@@ -444,6 +469,8 @@ export default class LevelScene extends Phaser.Scene {
 
     if (c.actionPressed()) this.doAction();
 
+    this.updateHeroAnim(onGround, locked);
+
     if (this.player.x >= FINISH_X) this.finish();
   }
 
@@ -468,7 +495,8 @@ export default class LevelScene extends Phaser.Scene {
       body.setVelocity(0, 0);
       body.moves = false;
       this.tweens.killTweensOf(this.player);
-      this.player.setAlpha(1).setFillStyle(COLORS.enemy);
+      this.player.setAlpha(1).setTint(COLORS.enemy);
+      this.playHeroAnim('hurt');
       // Бонусы с таймером сгорают вместе с «перерывом»
       this.buffs.clear();
       touch.setVisible(false);
@@ -494,7 +522,7 @@ export default class LevelScene extends Phaser.Scene {
     const body = this.player.body;
     body.moves = true;
     body.reset(x, y);
-    this.player.setFillStyle(COLORS.accent);
+    this.player.clearTint();
     this.cameras.main.centerOn(x, y);
 
     this.health = PLAYER.maxHealth;
@@ -527,15 +555,21 @@ export default class LevelScene extends Phaser.Scene {
   }
 
   doAction() {
-    this.actionFx
-      .setPosition(this.player.x + this.facing * (PLAYER.width / 2 + 6), this.player.y)
-      .setVisible(true);
-    this.time.delayedCall(100, () => this.actionFx.setVisible(false));
+    // Анимация удара: замах и выброс кулака (4 кадра по 15 в секунду)
+    this.actingUntil = this.time.now + 270;
+    this.player.play(`${this.heroTex}:action`); // с начала, даже если удар уже шёл
+    // Вспышка у кулака в момент удара
+    this.time.delayedCall(70, () => {
+      this.actionFx.setPosition(this.player.x + this.facing * 14, this.player.y + 2).setVisible(true);
+      this.time.delayedCall(100, () => this.actionFx.setVisible(false));
+    });
   }
 
   finish() {
     this.finished = true;
     this.player.body.setVelocity(0, 0);
+    this.player.setFlipX(false);
+    this.playHeroAnim('victory');
     touch.setVisible(false);
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'Уровень пройден!', {
@@ -545,7 +579,7 @@ export default class LevelScene extends Phaser.Scene {
       })
       .setOrigin(0.5)
       .setScrollFactor(0);
-    this.time.delayedCall(1500, () => this.scene.start('Menu'));
+    this.time.delayedCall(2000, () => this.scene.start('Menu'));
   }
 }
 

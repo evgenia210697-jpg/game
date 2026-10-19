@@ -28,8 +28,8 @@ export default class Checkpoint {
     // Планка турникета поднимается — проход открыт
     this.scene.tweens.add({ targets: this.arm, angle: -80, duration: 200 });
 
-    // Пол героя пока не выбирается. Когда появится выбор — для героини «Отметилась».
-    showToast(this.scene, 'Отметился на проходной!');
+    const female = this.scene.registry.get('hero') === 'female';
+    showToast(this.scene, female ? 'Отметилась на проходной!' : 'Отметился на проходной!');
     return true;
   }
 }

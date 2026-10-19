@@ -102,6 +102,53 @@ TORSO_C = TORSO[:3] + [
 "........KnnnnnnnnKhHhhK.",
 ]
 
+# Действие, замах: кулак передней руки прижат к груди
+TORSO_WINDUP = [
+".......KBBNgDDgNBBK.....",
+".....KbLBBNLLLLNBBBnK...",
+".....KbBBnNBBBBKHFHK....",
+"....KHFHKnNBBBKHFFHK....",
+"...KHFFHKnNBBBKhHhhK....",
+"...KHFHhKNNYNNKKKKKK....",
+"...KhHhhKnnnnnnnnK......",
+"....KKKKKnnnnnnnnK......",
+]
+
+# Действие, удар: передняя рука выброшена вперёд на уровне плеча
+TORSO_PUNCH = [
+".......KBBNgDDgNBBK.KKK.",
+".....KbLBBNLLLLNBBBBHFHK",
+".....KbBBnNBBBBNnBBBHFFK",
+"....KHFHKnNBBBBNnKKKhHhK",
+"...KHFFHKnNBBBBNnK..KKK.",
+"...KHFHhKNNYNNYNNK......",
+"...KhHhhKnnnnnnnnK......",
+"....KKKKKnnnnnnnnK......",
+]
+
+# Победа: передняя рука поднята вверх, кисть рядом с лицом (рука — в RAISED_ARM)
+TORSO_VICTORY = [
+".......KBBNgDDgNBBK.....",
+".....KbLBBNLLLLNBBBBBK..",
+".....KbBBnNBBBBNnBBK....",
+"....KHFHKnNBBBBNnK......",
+"...KHFFHKnNBBBBNnK......",
+"...KHFHhKNNYNNYNNK......",
+"...KhHhhKnnnnnnnnK......",
+"....KKKKKnnnnnnnnK......",
+]
+# Поднятая рука: строки от верха кадра (кулак у лица, рукав до плеча)
+RAISED_ARM = [""] * 9 + [
+"...................KKKK.",
+"...................KHFHK",
+"...................KHFFK",
+"...................KhHhK",
+"...................KBBK.",
+"...................KBBK.",
+"...................KbBK.",
+"...................KbBK.",
+]
+
 # Ноги: стоит
 
 LEGS = [
@@ -170,6 +217,20 @@ def overlay(frame, patch, top):
     return f
 
 
+def close_eyes(head):
+    """Урон: глаза зажмурены — вместо вертикальных чёрточек горизонтальные."""
+    face_top = len(HELMET)
+    rows = [list(r) for r in head]
+    for r in range(face_top, len(rows)):
+        for c in (13, 17):
+            if rows[r][c] == "K" and rows[r][c - 1] in "FH" and rows[r][c + 1] in "FHs":
+                rows[r][c] = "F"
+    line = face_top + 2
+    for c in (12, 13, 16, 17):
+        rows[line][c] = "K"
+    return ["".join(r) for r in rows]
+
+
 def build(head, back=None):
     H = len(head)
 
@@ -192,7 +253,12 @@ def build(head, back=None):
         "runD": up(with_back(head + TORSO + PASS, 0)),
         "jump": with_back(head + TORSO_A + TUCK, 0),
         "fall": with_back(close_front_hand(head + TORSO_C + STRIDE), 0),
+        "act0": with_back(head + TORSO_WINDUP + LEGS, 0),
+        "act1": with_back(head + TORSO_PUNCH + STRIDE, 0),
+        "hurt": with_back(close_front_hand(close_eyes(head) + TORSO_C + STRIDE), 0),
+        "win0": overlay(with_back(head + TORSO_VICTORY + LEGS, 0), RAISED_ARM, 0),
     }
+    fr["win1"] = up(fr["win0"], 2)  # подпрыгнул от радости
     for name, f in fr.items():
         assert len(f) == 32, (name, len(f))
         for i, r in enumerate(f):
@@ -214,6 +280,9 @@ def write(name, header, fr):
     anim("run", 10, True, [fr["runA"], fr["runB"], fr["runC"], fr["runD"]])
     anim("jump", 1, False, [fr["jump"]])
     anim("fall", 1, False, [fr["fall"]])
+    anim("action", 15, False, [fr["act0"], fr["act1"], fr["act1"], fr["idle0"]])
+    anim("hurt", 1, False, [fr["hurt"]])
+    anim("victory", 4, True, [fr["win0"], fr["win1"]])
     path = os.path.join(ROOT, "art", "sprites", "player", name + ".txt")
     open(path, "w").write("\n".join(out) + "\n")
     print("✓", os.path.relpath(path, ROOT))

@@ -21,9 +21,9 @@ export default class DeathScene extends Phaser.Scene {
 
     this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.bg, 0.85).setOrigin(0);
 
-    // Пол героя пока не выбирается. Когда появится выбор — для героини «Ушла на перерыв».
+    const female = this.registry.get('hero') === 'female';
     this.add
-      .text(cx, 54, 'Ушёл на перерыв.', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
+      .text(cx, 54, female ? 'Ушла на перерыв.' : 'Ушёл на перерыв.', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
       .setOrigin(0.5);
     this.add
       .text(cx, 80, 'Вернёшься?', { fontFamily: FONT.family, fontSize: '14px', color: COLORS.textMuted })

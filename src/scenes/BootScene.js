@@ -1,15 +1,21 @@
 import * as Phaser from 'phaser';
+import { HEROES, baseKey, preloadHeroes, createHeroAnims } from '../gfx/hero.js';
+import { loadHero } from '../state/settings.js';
 
-// Загрузка ассетов. Пока ассетов нет — сразу в меню.
-// Сюда же позже придут экраны загрузки с фразами из ТЗ (раздел 6).
+// Загрузка графики. Сюда же позже придут экраны загрузки с фразами из ТЗ (раздел 6).
 export default class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
   }
 
-  preload() {}
+  preload() {
+    preloadHeroes(this);
+  }
 
   create() {
+    HEROES.forEach((hero) => createHeroAnims(this, hero, baseKey(hero)));
+    // Выбранный герой — в общем реестре игры, его читают меню, уровень и тексты
+    this.registry.set('hero', loadHero());
     this.scene.start('Menu');
   }
 }
