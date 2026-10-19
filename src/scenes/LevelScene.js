@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER, BONUS } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER, BONUS, PAINT_COLORS } from '../config.js';
 import Controls from '../input/Controls.js';
 import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
@@ -8,6 +8,7 @@ import Washer from '../objects/Washer.js';
 import Helmet from '../objects/Helmet.js';
 import Coffee from '../objects/Coffee.js';
 import Tape from '../objects/Tape.js';
+import Paint from '../objects/Paint.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
@@ -92,6 +93,9 @@ const COFFEES = [77, 146];
 // Изолента: в тайлах по X. Первая — с запасом до первого врага, вторая — перед последним
 const TAPES = [29, 164];
 
+// Порошковая покраска: в тайлах по X — за 20 тайлов до врага на длинной платформе
+const PAINTS = [90];
+
 // Шайба Гроверная лежит сразу после первого ряда болтов, до первых препятствий
 const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
 
@@ -161,7 +165,11 @@ export default class LevelScene extends Phaser.Scene {
     this.tapes = TAPES.map((tx) => new Tape(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.tapes.forEach((t) => this.physics.add.overlap(this.player, t.zone, () => this.pickTape(t)));
 
-    // Щит Изоленты — рамка вокруг героя
+    this.paints = PAINTS.map((tx) => new Paint(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.paints.forEach((p) => this.physics.add.overlap(this.player, p.zone, () => this.pickPaint(p)));
+    this.paintColor = null;
+
+    // Щит Изоленты или Покраски — рамка вокруг героя
     this.shield = this.add
       .rectangle(0, 0, PLAYER.width + 6, PLAYER.height + 6)
       .setStrokeStyle(1, COLORS.tape)
@@ -268,13 +276,26 @@ export default class LevelScene extends Phaser.Scene {
       this.headHelmet.setPosition(x, y - PLAYER.height / 2 - 1).setAlpha(this.player.alpha);
     }
 
+    // Покраска: пока действует — герой в новом цвете
+    const paint = this.buffs.get('paint');
+    if (!this.dead) this.player.setFillStyle(paint ? this.paintColor : COLORS.accent);
+
+    // Рамка щита — цвета того бонуса, что продержится дольше
     const tape = this.buffs.get('tape');
-    this.shield.setVisible(Boolean(tape));
-    if (tape) {
+    const shieldBuff = [paint, tape].filter(Boolean).sort((a, b) => b.remaining - a.remaining)[0];
+    this.shield.setVisible(Boolean(shieldBuff));
+    if (shieldBuff) {
       // За 2 секунды до конца щит мигает, как и его полоска
-      const ending = tape.remaining < 2000 && Math.floor(tape.remaining / 150) % 2 === 0;
-      this.shield.setPosition(x, y).setAlpha(ending ? 0.3 : 1);
+      const ending = shieldBuff.remaining < 2000 && Math.floor(shieldBuff.remaining / 150) % 2 === 0;
+      this.shield
+        .setStrokeStyle(1, shieldBuff === paint ? this.paintColor : COLORS.tape)
+        .setPosition(x, y)
+        .setAlpha(ending ? 0.3 : 1);
     }
+  }
+
+  isShielded() {
+    return this.buffs.has('tape') || this.buffs.has('paint');
   }
 
   // Каска принимает удар и слетает с головы
@@ -304,6 +325,17 @@ export default class LevelScene extends Phaser.Scene {
     tape.take();
     this.addBuff('tape', BONUS.tape.duration, COLORS.tape);
     showToast(this, 'Изолента! 10 секунд враги не страшны');
+  }
+
+  pickPaint(paint) {
+    if (this.dead) return;
+    paint.take();
+    // Случайный цвет, но не тот же, что был в прошлый раз
+    const choices = PAINT_COLORS.filter((p) => p.color !== this.paintColor);
+    const pick = choices[Math.floor(Math.random() * choices.length)];
+    this.paintColor = pick.color;
+    this.addBuff('paint', BONUS.paint.duration, pick.color);
+    showToast(this, `Порошковая покраска! Цвет — ${pick.name}.\n10 секунд враги не страшны`, { hold: 1600 });
   }
 
   addBuff(name, duration, color) {
@@ -418,8 +450,8 @@ export default class LevelScene extends Phaser.Scene {
   hurtPlayer(enemy) {
     const now = this.time.now;
     if (this.finished || this.dead || now < this.invulnerableUntil) return;
-    // Под щитом Изоленты враги проходят насквозь: ни урона, ни отбрасывания, каска цела
-    if (this.buffs.has('tape')) return;
+    // Под щитом Изоленты или Покраски враги проходят насквозь: ни урона, ни отбрасывания, каска цела
+    if (this.isShielded()) return;
 
     // В каске удар забирает каску, а не здоровье
     if (this.hasHelmet) this.loseHelmet();
