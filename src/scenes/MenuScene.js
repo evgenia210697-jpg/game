@@ -1,4 +1,5 @@
 import * as Phaser from 'phaser';
+import { audio } from '../audio/audio.js';
 import { GAME_WIDTH, COLORS, FONT, LIVES } from '../config.js';
 import { touch, isTouchDevice } from '../input/touch.js';
 import { createButton } from '../ui/button.js';
@@ -23,6 +24,7 @@ export default class MenuScene extends Phaser.Scene {
     // Сцена переиспользуется при каждом возврате в меню — сбрасываем флаг
     this.starting = false;
     touch.setVisible(false);
+    audio.playMusic('menu');
     const cx = GAME_WIDTH / 2;
 
     this.add
@@ -70,7 +72,10 @@ export default class MenuScene extends Phaser.Scene {
 
   selectHero(hero, { silent = false } = {}) {
     this.registry.set('hero', hero);
-    if (!silent) saveHero(hero);
+    if (!silent) {
+      saveHero(hero);
+      audio.play('click');
+    }
     for (const card of this.cards) {
       const on = card.hero === hero;
       card.frame.setStrokeStyle(on ? 2 : 1, on ? COLORS.accent : COLORS.platform);

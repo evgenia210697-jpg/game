@@ -1,4 +1,5 @@
 import { playFx } from '../gfx/fx.js';
+import { audio } from '../audio/audio.js';
 
 // Основа для бонусов, которые лежат на уровне: покачиваются, подбираются касанием, при подборе — «пуф».
 // parts — фигуры, из которых нарисован бонус; зона касания — прямоугольник hitW×hitH.
@@ -24,5 +25,6 @@ export default class Pickup {
     this.scene.physics.world.disable(this.zone);
     this.parts.forEach((p) => p.destroy());
     playFx(this.scene, this.zone.x, this.zone.y, 'puff', 'pick');
+    audio.play('pickup');
   }
 }

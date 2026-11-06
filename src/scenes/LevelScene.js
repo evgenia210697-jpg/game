@@ -17,6 +17,7 @@ import { showToast, hideToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
 import { frameOf } from '../gfx/art.js';
 import { playFx } from '../gfx/fx.js';
+import { audio } from '../audio/audio.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
 // Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
@@ -120,6 +121,7 @@ export default class LevelScene extends Phaser.Scene {
   create() {
     const worldWidth = LEVEL_TILES_WIDE * TILE;
     this.physics.world.setBounds(0, 0, worldWidth, GAME_HEIGHT);
+    audio.playMusic('warehouse');
     this.finished = false;
     this.dead = false;
     this.pendingRespawn = false;
@@ -296,11 +298,13 @@ export default class LevelScene extends Phaser.Scene {
     this.boltCount += 1;
     this.boltCounter.set(this.boltCount);
     playFx(this, bolt.x, bolt.y, 'twinkle', 'bolt');
+    audio.play('bolt');
 
     // Каждые 100 болтов за игру — +1 жизнь
     const bank = this.registry.get('boltBank') + 1;
     this.registry.set('boltBank', bank);
     if (bank % LIVES.boltsPerLife === 0) {
+      audio.play('oneUp');
       this.registry.set('lives', this.registry.get('lives') + 1);
       this.livesCounter.set(this.registry.get('lives'));
       showToast(this, `${bank}-й болт! +1 жизнь`, { hold: 1600 });
@@ -384,6 +388,7 @@ export default class LevelScene extends Phaser.Scene {
   // Каска принимает удар и слетает с головы
   loseHelmet() {
     // Слетает жёлтая «скорлупа» каски, а на герое снова его синяя
+    audio.play('helmetLost');
     const flying = this.add.arc(this.player.x, this.player.y - PLAYER.height / 2 + 6, 8, 180, 360, false, COLORS.helmet);
     this.setHelmet(false);
     this.tweens.add({
@@ -440,11 +445,13 @@ export default class LevelScene extends Phaser.Scene {
     if (this.hasWasher || this.dead) return;
     this.hasWasher = true;
     this.washer.attach();
+    audio.play('pickup');
     showToast(this, 'Шайба Гроверная теперь с тобой!\nВ воздухе прыгни ещё раз — двойной прыжок', { hold: 2500 });
   }
 
   reachCheckpoint() {
     if (this.dead || !this.checkpoint.activate()) return;
+    audio.play('checkpoint');
     this.spawn = { x: this.checkpoint.x, y: GROUND_TOP - PLAYER.height / 2 };
   }
 
@@ -514,12 +521,14 @@ export default class LevelScene extends Phaser.Scene {
     const wantsJump = time - this.jumpQueuedAt <= PLAYER.jumpBuffer;
     if (canJump && wantsJump) {
       body.setVelocityY(-PLAYER.jumpVelocity);
+      audio.play('jump');
       this.lastGroundedAt = -Infinity;
       this.jumpQueuedAt = -Infinity;
       this.jumpCut = false;
     } else if (jumpPressed && !canJump && this.hasWasher && !this.airJumpUsed) {
       // Двойной прыжок с Шайбой: одно нажатие в воздухе, до приземления
       body.setVelocityY(-PLAYER.airJumpVelocity);
+      audio.play('airJump');
       this.airJumpUsed = true;
       this.jumpQueuedAt = -Infinity;
       this.jumpCut = false;
@@ -551,6 +560,7 @@ export default class LevelScene extends Phaser.Scene {
     else {
       this.health -= 1;
       this.healthBar.set(this.health);
+      if (this.health > 0) audio.play('hurt');
     }
 
     const body = this.player.body;
@@ -558,6 +568,7 @@ export default class LevelScene extends Phaser.Scene {
       // Здоровье кончилось — экран «Ушёл на перерыв. Вернёшься?»,
       // потом герой появляется на проходной (или в начале, если не отметился).
       this.dead = true;
+      audio.play('death');
       body.setVelocity(0, 0);
       body.moves = false;
       this.tweens.killTweensOf(this.player);
@@ -626,6 +637,7 @@ export default class LevelScene extends Phaser.Scene {
   doAction() {
     // Анимация удара: замах и выброс кулака (4 кадра по 15 в секунду)
     this.actingUntil = this.time.now + 270;
+    audio.play('punch');
     this.player.play(`${this.heroTex}:action`); // с начала, даже если удар уже шёл
     // Искра у кулака в момент удара
     this.time.delayedCall(70, () => playFx(this, this.player.x + this.facing * 16, this.player.y + 2, 'spark', 'hit'));
@@ -633,6 +645,8 @@ export default class LevelScene extends Phaser.Scene {
 
   finish() {
     this.finished = true;
+    audio.stopMusic();
+    audio.play('victory');
     this.player.body.setVelocity(0, 0);
     this.player.setFlipX(false);
     this.playHeroAnim('victory');

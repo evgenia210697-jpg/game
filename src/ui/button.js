@@ -1,4 +1,5 @@
 import { COLORS, FONT } from '../config.js';
+import { audio } from '../audio/audio.js';
 
 // Размер кнопки в игровых пикселях. По ТЗ кнопки на телефоне — не меньше 48×48 px экрана.
 // Самый мелкий масштаб у нас — телефон 360 px по высоте: 360 / 270 ≈ ×1,33,
@@ -19,7 +20,10 @@ export function createButton(scene, x, y, label, onClick, { width = BUTTON.width
 
   bg.on('pointerover', () => bg.setFillStyle(COLORS.accent));
   bg.on('pointerout', () => bg.setFillStyle(COLORS.bg));
-  bg.on('pointerup', onClick);
+  bg.on('pointerup', () => {
+    onClick();
+    audio.play('click'); // после действия — на паузе щелчок слышен уже с новой громкостью
+  });
 
   return { bg, text };
 }

@@ -1,6 +1,7 @@
 import * as Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT, GRAVITY, COLORS } from './config.js';
 import { touch } from './input/touch.js';
+import { audio } from './audio/audio.js';
 import BootScene from './scenes/BootScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import LevelScene from './scenes/LevelScene.js';
@@ -47,6 +48,7 @@ window.visualViewport?.addEventListener('resize', fitZoom);
 game.events.once(Phaser.Core.Events.READY, fitZoom);
 
 touch.init(game);
+audio.init(game);
 
 // Для отладки из консоли браузера
 window.__game = game;

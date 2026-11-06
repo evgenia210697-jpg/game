@@ -29,3 +29,16 @@ export function loadHero() {
 export function saveHero(hero) {
   write('hero', hero);
 }
+
+// Громкость музыки и звуков, 0–10. По ТЗ звук по умолчанию включён, но тихо.
+const DEFAULT_VOLUMES = { music: 3, sfx: 5 };
+
+export function loadVolumes() {
+  const v = read('volumes', DEFAULT_VOLUMES);
+  const clamp = (x, d) => (Number.isFinite(x) ? Math.max(0, Math.min(10, Math.round(x))) : d);
+  return { music: clamp(v?.music, DEFAULT_VOLUMES.music), sfx: clamp(v?.sfx, DEFAULT_VOLUMES.sfx) };
+}
+
+export function saveVolumes(volumes) {
+  write('volumes', volumes);
+}
