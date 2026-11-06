@@ -1,0 +1,409 @@
+<title>Анкета «Заказ горит!»</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=PT+Sans:wght@400;700&display=swap">
+<style>
+/* Раскладка: одна колонка-«бланк» как экран игры — тёмный склад, синие действия, пиксельные заголовки.
+   Один тёмный облик осознанно (как у самой игры): цвета заданы явно, тема просмотрщика не влияет. */
+:root {
+  color-scheme: dark;
+  --bg: #16181c;        /* фон игры */
+  --panel: #1e2127;     /* плашка вопроса */
+  --line: #31353e;      /* рамки, разделители */
+  --text: #e6e9ec;
+  --muted: #9aa3ad;
+  --accent: #2d6bff;    /* фирменный синий: выбор, кнопки */
+  --accent-soft: #1a44b8;
+  --ok: #56b06a;
+  --warn: #e0b021;
+  --pixel: "Press Start 2P", "Courier New", monospace;
+  --sans: "PT Sans", "Segoe UI", Roboto, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); }
+body {
+  margin: 0;
+  font: 17px/1.5 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.sheet { max-width: 640px; margin: 0 auto; display: grid; gap: 20px; }
+
+header { display: grid; gap: 12px; }
+.eyebrow { font: 10px/1.6 var(--pixel); color: var(--muted); letter-spacing: 0.04em; }
+h1 { font: 24px/1.4 var(--pixel); margin: 0; text-wrap: balance; }
+h1 .fire { color: var(--warn); }
+.lead { margin: 0; color: var(--muted); max-width: 60ch; }
+.play {
+  justify-self: start;
+  display: inline-flex; align-items: center; gap: 10px;
+  font: 12px/1 var(--pixel); color: var(--text); text-decoration: none;
+  border: 2px solid var(--accent); padding: 12px 16px; min-height: 48px;
+}
+.play:hover { background: var(--accent-soft); }
+.play:focus-visible, button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 3px solid var(--warn); outline-offset: 2px; }
+
+form { display: grid; gap: 14px; }
+fieldset {
+  margin: 0; border: 1px solid var(--line); background: var(--panel);
+  padding: 16px; display: grid; gap: 12px; min-width: 0;
+}
+legend { padding: 0; font-weight: 700; font-size: 18px; display: contents; }
+.q { font-weight: 700; font-size: 18px; margin: 0; }
+.q small { font-weight: 400; color: var(--muted); font-size: 15px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips label { position: relative; }
+.chips input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.chips span {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 8px 14px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--text); cursor: pointer; user-select: none;
+}
+.chips input:checked + span { border-color: var(--accent); background: var(--accent-soft); }
+.chips input:focus-visible + span { outline: 3px solid var(--warn); outline-offset: 2px; }
+.fun span { min-width: 52px; justify-content: center; font: 14px/1 var(--pixel); }
+.scale-note { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; max-width: 320px; }
+
+textarea, input[type=text] {
+  width: 100%; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); padding: 10px 12px;
+}
+textarea { min-height: 88px; resize: vertical; }
+.err { color: var(--warn); font-size: 15px; margin: 0; }
+.err:empty { display: none; }
+
+.submit {
+  font: 14px/1 var(--pixel); color: #fff; background: var(--accent); border: 0;
+  min-height: 52px; padding: 16px 22px; cursor: pointer; justify-self: start;
+}
+.submit:hover { background: #4a80ff; }
+.submit[disabled] { opacity: 0.6; cursor: default; }
+
+.result { border: 1px solid var(--line); background: var(--panel); padding: 16px; display: grid; gap: 12px; }
+.result h2 { font: 14px/1.5 var(--pixel); margin: 0; }
+.result.ok h2 { color: var(--ok); }
+.result p { margin: 0; }
+.copybox { white-space: pre-wrap; background: var(--bg); border: 1px dashed var(--line); padding: 12px; font-size: 15px; user-select: text; }
+.copy { font: inherit; font-weight: 700; color: var(--text); background: transparent; border: 2px solid var(--accent); min-height: 44px; padding: 8px 14px; cursor: pointer; justify-self: start; }
+
+.owner { border-top: 2px solid var(--accent); padding-top: 18px; display: grid; gap: 14px; }
+.owner h2 { font: 14px/1.5 var(--pixel); margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.stat { background: var(--panel); border: 1px solid var(--line); padding: 12px; display: grid; gap: 6px; min-width: 0; }
+.stat b { font-size: 15px; }
+.stat ul { margin: 0; padding: 0; list-style: none; font-size: 15px; color: var(--muted); }
+.stat .num { font-variant-numeric: tabular-nums; color: var(--text); }
+.answers { display: grid; gap: 10px; }
+.answer { background: var(--panel); border: 1px solid var(--line); padding: 12px; display: grid; gap: 6px; font-size: 15px; min-width: 0; }
+.answer .who { font-weight: 700; }
+.answer .meta { color: var(--muted); }
+.answer p { margin: 0; overflow-wrap: anywhere; }
+.note { color: var(--muted); font-size: 15px; margin: 0; }
+
+@media (max-width: 420px) {
+  h1 { font-size: 18px; }
+  body { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main class="sheet">
+  <header>
+    <div class="eyebrow">ТЕСТ ПРОТОТИПА · СКЛАД</div>
+    <h1>Заказ горит<span class="fire">!</span></h1>
+    <p class="lead">Спасибо, что сыграл(а)! Семь коротких вопросов, почти все в один клик, — около двух минут. Честные ответы важнее вежливых: по ним будем править игру.</p>
+    <a class="play" href="https://claude.ai/artifact/3fYcYgggwaFGjrrkU9cPos" target="_blank" rel="noopener">▶ Открыть игру</a>
+  </header>
+
+  <form id="survey" novalidate>
+    <fieldset>
+      <p class="q">Как тебя зовут? <small>— можно не писать</small></p>
+      <input type="text" id="name" name="name" maxlength="60" autocomplete="name" placeholder="Например, Сергей из закупок">
+    </fieldset>
+
+    <fieldset>
+      <p class="q">1. На чём играл(а)?</p>
+      <div class="chips" role="radiogroup" aria-label="На чём играл(а)">
+        <label><input type="radio" name="device" id="device-pc" value="Компьютер"><span>Компьютер</span></label>
+        <label><input type="radio" name="device" id="device-phone" value="Телефон"><span>Телефон</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <p class="q">2. Дошёл(ла) до ворот отгрузки?</p>
+      <div class="chips" role="radiogroup" aria-label="Дошёл(ла) до ворот отгрузки">
+        <label><input type="radio" name="finished" id="fin-first" value="Да, с первого раза"><span>Да, с первого раза</span></label>
+        <label><input type="radio" name="finished" id="fin-later" value="Да, но не сразу"><span>Да, но не сразу</span></label>
+        <label><input type="radio" name="finished" id="fin-no" value="Нет, бросил(а)"><span>Нет, бросил(а)</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <p class="q">3. Сколько раз уходил(а) «на перерыв»?</p>
+      <div class="chips" role="radiogroup" aria-label="Сколько раз уходил(а) на перерыв">
+        <label><input type="radio" name="deaths" id="d-0" value="Ни разу"><span>Ни разу</span></label>
+        <label><input type="radio" name="deaths" id="d-12" value="1–2 раза"><span>1–2 раза</span></label>
+        <label><input type="radio" name="deaths" id="d-3" value="3 и больше"><span>3 и больше</span></label>
+        <label><input type="radio" name="deaths" id="d-out" value="Кончались жизни"><span>Кончались жизни</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <p class="q">4. Насколько было весело?</p>
+      <div class="chips fun" role="radiogroup" aria-label="Насколько было весело, от 1 до 5">
+        <label><input type="radio" name="fun" id="fun-1" value="1"><span>1</span></label>
+        <label><input type="radio" name="fun" id="fun-2" value="2"><span>2</span></label>
+        <label><input type="radio" name="fun" id="fun-3" value="3"><span>3</span></label>
+        <label><input type="radio" name="fun" id="fun-4" value="4"><span>4</span></label>
+        <label><input type="radio" name="fun" id="fun-5" value="5"><span>5</span></label>
+      </div>
+      <div class="scale-note"><span>скучно</span><span>очень весело</span></div>
+    </fieldset>
+
+    <fieldset>
+      <p class="q">5. Где было трудно или непонятно? <small>— место, кнопка, надпись</small></p>
+      <textarea id="hard" name="hard" maxlength="1500" placeholder="Например: не понял(а), что шайбу надо подобрать; не допрыгнуть до высокой полки"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <p class="q">6. Что понравилось больше всего?</p>
+      <textarea id="liked" name="liked" maxlength="1500" placeholder="Герой, враги, бонусы, шутки — что угодно"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <p class="q">7. Захотелось сыграть ещё или пройти следующий уровень?</p>
+      <div class="chips" role="radiogroup" aria-label="Захотелось сыграть ещё">
+        <label><input type="radio" name="again" id="again-yes" value="Да"><span>Да</span></label>
+        <label><input type="radio" name="again" id="again-maybe" value="Может быть"><span>Может быть</span></label>
+        <label><input type="radio" name="again" id="again-no" value="Нет"><span>Нет</span></label>
+      </div>
+    </fieldset>
+
+    <p class="err" id="formError" role="alert"></p>
+    <button type="submit" class="submit" id="submitBtn">Отправить</button>
+  </form>
+
+  <section class="result" id="result" hidden>
+    <h2 id="resultTitle"></h2>
+    <p id="resultText"></p>
+    <div class="copybox" id="copyText"></div>
+    <button type="button" class="copy" id="copyBtn">Скопировать ответ</button>
+  </section>
+
+  <section class="owner" id="owner" hidden>
+    <h2>Ответы коллег</h2>
+    <p class="note" id="ownerNote">Видно только тебе. Загружаю ответы…</p>
+    <div class="stats" id="stats"></div>
+    <div class="answers" id="answers"></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const QUESTIONS = [
+    ['device', 'На чём играл(а)'],
+    ['finished', 'Дошёл(ла) до ворот'],
+    ['deaths', 'Уходил(а) на перерыв'],
+    ['fun', 'Весело, из 5'],
+    ['hard', 'Трудно или непонятно'],
+    ['liked', 'Понравилось'],
+    ['again', 'Сыграть ещё'],
+  ];
+  const REQUIRED = ['device', 'finished', 'fun'];
+  const $ = (id) => document.getElementById(id);
+  const form = $('survey');
+
+  let db = null;
+  let uid = null;
+
+  function readForm() {
+    const fd = new FormData(form);
+    const v = (k) => String(fd.get(k) ?? '').trim();
+    return {
+      name: v('name'), device: v('device'), finished: v('finished'), deaths: v('deaths'),
+      fun: v('fun') ? Number(v('fun')) : null, hard: v('hard'), liked: v('liked'), again: v('again'),
+    };
+  }
+
+  function fillForm(a) {
+    $('name').value = a.name || '';
+    $('hard').value = a.hard || '';
+    $('liked').value = a.liked || '';
+    for (const k of ['device', 'finished', 'deaths', 'fun', 'again']) {
+      if (a[k] == null || a[k] === '') continue;
+      const el = form.querySelector(`input[name="${k}"][value="${String(a[k])}"]`);
+      if (el) el.checked = true;
+    }
+  }
+
+  function asText(a) {
+    const lines = ['Анкета «Заказ горит!»'];
+    if (a.name) lines.push('Имя: ' + a.name);
+    for (const [k, label] of QUESTIONS) if (a[k] !== '' && a[k] != null) lines.push(label + ': ' + a[k]);
+    return lines.join('\n');
+  }
+
+  function showResult(saved, a) {
+    $('result').hidden = false;
+    $('result').classList.toggle('ok', saved);
+    $('resultTitle').textContent = saved ? 'Ответ сохранён. Спасибо!' : 'Спасибо! Остался один шаг';
+    $('resultText').textContent = saved
+      ? 'Евгения увидит его в сводке. Можно поправить ответы и отправить ещё раз — сохранится последний вариант. Текст ниже — на всякий случай.'
+      : 'Здесь ответ сохранить не получилось. Скопируй текст и отправь Евгении в мессенджер или на почту.';
+    $('copyText').textContent = asText(a);
+    $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  $('copyBtn').addEventListener('click', async () => {
+    const text = $('copyText').textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      $('copyBtn').textContent = 'Скопировано';
+    } catch {
+      // Буфер обмена недоступен — выделяем текст, чтобы скопировать вручную
+      const r = document.createRange();
+      r.selectNodeContents($('copyText'));
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      $('copyBtn').textContent = 'Текст выделен — скопируй вручную';
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const a = readForm();
+    const missing = REQUIRED.filter((k) => a[k] === '' || a[k] == null);
+    if (missing.length) {
+      $('formError').textContent = 'Ответь, пожалуйста, на вопросы 1, 2 и 4 — они в один клик.';
+      return;
+    }
+    $('formError').textContent = '';
+    $('submitBtn').disabled = true;
+    let saved = false;
+    if (db && uid) {
+      try {
+        await db.doc('responses/' + uid).set({ ...a, submittedAt: new Date().toISOString() });
+        saved = true;
+      } catch {
+        saved = false;
+      }
+    }
+    $('submitBtn').disabled = false;
+    $('submitBtn').textContent = 'Отправить ещё раз';
+    showResult(saved, a);
+  });
+
+  // ---------- Сводка для владельца ----------
+  function count(list, key) {
+    const m = new Map();
+    for (const a of list) if (a[key] !== '' && a[key] != null) m.set(String(a[key]), (m.get(String(a[key])) || 0) + 1);
+    return [...m.entries()].sort((x, y) => y[1] - x[1]);
+  }
+
+  function statBlock(title, rows) {
+    const box = document.createElement('div');
+    box.className = 'stat';
+    const b = document.createElement('b');
+    b.textContent = title;
+    const ul = document.createElement('ul');
+    for (const [label, n] of rows) {
+      const li = document.createElement('li');
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = n + ' · ';
+      li.append(num, document.createTextNode(label));
+      ul.append(li);
+    }
+    if (!rows.length) {
+      const li = document.createElement('li');
+      li.textContent = 'пока нет';
+      ul.append(li);
+    }
+    box.append(b, ul);
+    return box;
+  }
+
+  function renderOwner(list) {
+    const n = list.length;
+    $('ownerNote').textContent = n
+      ? `Видно только тебе. Ответов: ${n}.`
+      : 'Видно только тебе. Пока ответов нет — они появятся здесь, когда коллеги отправят анкету.';
+    const stats = $('stats');
+    stats.replaceChildren();
+    if (n) {
+      const funVals = list.map((a) => Number(a.fun)).filter((x) => x >= 1 && x <= 5);
+      const avg = funVals.length ? (funVals.reduce((s, x) => s + x, 0) / funVals.length).toFixed(1).replace('.', ',') : '—';
+      stats.append(
+        statBlock('Весело, в среднем', [[`из 5 (оценок: ${funVals.length})`, avg]]),
+        statBlock('Дошли до ворот', count(list, 'finished')),
+        statBlock('Перерывов', count(list, 'deaths')),
+        statBlock('Сыграть ещё', count(list, 'again')),
+        statBlock('Устройство', count(list, 'device')),
+      );
+    }
+    const answers = $('answers');
+    answers.replaceChildren();
+    for (const a of list) {
+      const card = document.createElement('div');
+      card.className = 'answer';
+      const who = document.createElement('div');
+      who.className = 'who';
+      who.textContent = a.name || 'Без имени';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = [a.device, a.finished, a.deaths, a.fun ? `весело: ${a.fun}/5` : '', a.again ? `ещё: ${a.again}` : '']
+        .filter(Boolean).join(' · ');
+      card.append(who, meta);
+      for (const [k, label] of [['hard', 'Трудно'], ['liked', 'Понравилось']]) {
+        if (!a[k]) continue;
+        const p = document.createElement('p');
+        p.textContent = label + ': ' + a[k];
+        card.append(p);
+      }
+      answers.append(card);
+    }
+  }
+
+  async function start() {
+    const use = window.claude?.use;
+    if (!use) return; // открыто вне claude.ai — анкета работает через «Скопировать»
+    const [userNs, dbNs] = await Promise.all([use('user'), use('db')]);
+    db = dbNs;
+    uid = userNs ? await userNs.id() : null;
+
+    // Уже отвечал(а) — подставляем прежний ответ, чтобы можно было поправить
+    if (db && uid) {
+      try {
+        const snap = await db.doc('responses/' + uid).get();
+        if (snap.exists) {
+          fillForm(snap.data());
+          $('submitBtn').textContent = 'Сохранить исправления';
+        }
+      } catch {
+        // нет доступа к своему ответу — просто пустая анкета
+      }
+    }
+
+    const isOwner = userNs ? await userNs.isOwner() : false;
+    if (!isOwner || !db) return;
+    $('owner').hidden = false;
+    const timer = setTimeout(() => {
+      $('ownerNote').textContent = 'Ответы пока не загрузились — проверь соединение, страница подтянет их сама.';
+    }, 10000);
+    db.collection('responses').onSnapshot(
+      (snap) => {
+        if (!snap.metadata.fromCache) clearTimeout(timer);
+        const list = snap.docs.map((d) => d.data()).sort((x, y) => String(y.submittedAt).localeCompare(String(x.submittedAt)));
+        renderOwner(list);
+      },
+      () => {
+        clearTimeout(timer);
+        $('ownerNote').textContent = 'Не получилось загрузить ответы. Открой страницу позже.';
+      },
+    );
+  }
+
+  start();
+})();
+</script>
