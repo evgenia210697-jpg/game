@@ -21,10 +21,12 @@ const SHEETS = [
   { key: 'card', path: 'sprites/items/card', width: 12, height: 16 },
   { key: 'rohlya', path: 'sprites/objects/rohlya', width: 48, height: 20 },
   { key: 'props', path: 'sprites/objects/props', size: 32 },
+  { key: 'mimic', path: 'sprites/bosses/mimic', width: 64, height: 56 },
+  { key: 'fasteners', path: 'sprites/bosses/fasteners', size: 8 },
 ];
 
 // Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»
-const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle', 'peresort_defeat', 'rust', 'dust', 'rohlya'];
+const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle', 'peresort_defeat', 'rust', 'dust', 'rohlya', 'mimic'];
 
 const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks'];
 

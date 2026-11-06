@@ -28,7 +28,19 @@ const M = ['E5 - D5 C5 G4 - - -', 'A4 - C5 E5 D5 - - -', 'C5 - A4 F4 A4 - C5 -',
   'E5 - G5 E5 D5 - C5 -', 'C5 - B4 A4 E5 - - -', 'F5 - E5 D5 A4 - D5 -', 'B4 - D5 - G5 - - -'];
 const MENU_ROOTS = ['C', 'A', 'F', 'G', 'C', 'A', 'D', 'G'];
 
+// Босс — тревожно, ми минор, 168 ударов: «ящик с надписью «Разное» открывает пасть»
+const BOSS = ['E5 - E5 G5 F#5 E5 D#5 E5', 'B4 - E5 - G5 - F#5 -', 'C5 E5 G5 E5 C6 - B5 A5', 'D5 F#5 A5 F#5 D6 - C6 B5',
+  'E5 G5 B5 G5 E5 G5 B5 E6', 'D#6 - B5 - F#5 - D#5 -', 'C5 - E5 - G5 F#5 E5 C5', 'B4 D#5 F#5 B5 A5 - F#5 -'];
+const BOSS_ROOTS = ['E', 'E', 'C', 'D', 'E', 'B', 'C', 'B'];
+
 export const TRACKS = {
+  boss: {
+    bpm: 168,
+    lead: BOSS,
+    bass: BOSS_ROOTS.map(bassBar),
+    drums: BOSS_ROOTS.map((_, i) => (i % 4 === 3 ? 'KSKSSSSS' : 'KHSHKKSH')),
+    voices: { lead: { wave: 'pulse', gain: 0.11 }, bass: { wave: 'triangle', gain: 0.32 } },
+  },
   warehouse: {
     bpm: 150,
     lead: WH_LEAD.map((k) => W[k]),

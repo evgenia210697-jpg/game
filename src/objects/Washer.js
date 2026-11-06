@@ -22,11 +22,11 @@ export default class Washer {
     });
   }
 
-  attach() {
+  attach({ silent = false } = {}) {
     this.following = true;
     this.bob.stop();
     this.scene.physics.world.disable(this.sprite);
-    playFx(this.scene, this.sprite.x, this.sprite.y, 'puff', 'pick');
+    if (!silent) playFx(this.scene, this.sprite.x, this.sprite.y, 'puff', 'pick');
   }
 
   // Летит чуть позади и выше плеча героя, с запаздыванием

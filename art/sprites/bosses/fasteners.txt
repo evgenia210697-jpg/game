@@ -1,0 +1,46 @@
+# Снаряды Ящика «Разное» — пересорт вперемешку: гайка, болт, синяя шайба, саморез. 8×8, центр.
+size 8x8
+
+anim nut 1 once
+frame
+..KKKK..
+.K5543K.
+K54KK43K
+K4K..K3K
+K4K..K2K
+K43KK32K
+.K3322K.
+..KKKK..
+
+anim bolt 1 once
+frame
+.KKKKK..
+K55443K.
+K44332K.
+.KK4KKK.
+..K43K..
+..K32K..
+..K43K..
+...KK...
+
+anim washer 1 once
+frame
+..KKKK..
+.KLbbBK.
+KLbKKBnK
+KbK..KnK
+KbK..KnK
+KBnKKnNK
+.KnnNNK.
+..KKKK..
+
+anim screw 1 once
+frame
+...KK...
+..K54K..
+..K43K..
+.KK4KKK.
+..K43K..
+.KK3KK..
+..K32K..
+...KK...

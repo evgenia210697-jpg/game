@@ -1,0 +1,50 @@
+{
+  "frameWidth": 64,
+  "frameHeight": 56,
+  "origin": "низ по центру",
+  "animations": {
+    "closed": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "peek": {
+      "frames": [
+        1
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "open": {
+      "frames": [
+        2
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "tired": {
+      "frames": [
+        3,
+        4
+      ],
+      "fps": 4,
+      "loop": true
+    },
+    "hurt": {
+      "frames": [
+        5
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "folded": {
+      "frames": [
+        6
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}

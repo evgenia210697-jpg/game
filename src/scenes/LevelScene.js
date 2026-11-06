@@ -10,12 +10,14 @@ import Coffee from '../objects/Coffee.js';
 import Tape from '../objects/Tape.js';
 import Paint from '../objects/Paint.js';
 import Rohlya from '../objects/Rohlya.js';
+import BossMimic, { MIMIC } from '../objects/BossMimic.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
 import LivesCounter from '../ui/LivesCounter.js';
 import CardCounter from '../ui/CardCounter.js';
 import { CARDS } from '../data/cards.js';
+import { LEVELS, GROUND_TOP } from '../data/levels.js';
 import { loadCards, saveCard } from '../state/settings.js';
 import { showToast, hideToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
@@ -24,154 +26,22 @@ import { playFx } from '../gfx/fx.js';
 import { addUprights, addProps, addLamps, addMotes, addForeground } from '../gfx/decor.js';
 import { audio } from '../audio/audio.js';
 
-// Серый тестовый уровень: проверяем, как бегается и прыгается.
-// Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
-// Высота прыжка ≈ 60 px, поэтому подъём между соседними опорами не больше 3 тайлов (48 px).
-const LEVEL_TILES_WIDE = 240;
-const GROUND_TOP = 240;
-const GROUND_ROW = GROUND_TOP / TILE; // 15
-
-// Платформы в тайлах: [x, y, ширина, высота], y — верхний ряд. Высота в один тайл — стеллажная балка
-// (под ней встают стойки до пола), выше — стопка коробок.
-// Прыжок ≈ 60 px: подъём между опорами до 3 тайлов, 4 и больше — только двойным прыжком с Шайбой.
-const PLATFORMS = [
-  // Старт и первый Пересортик
-  [12, 13, 2, 2],
-  // Стеллажи: лесенка и тайник с первой карточкой (верхняя балка — только двойным прыжком)
-  [27, 12, 4, 1],
-  [32, 9, 4, 1],
-  [37, 5, 3, 1],
-  [43, 11, 9, 1],
-  // Рохля №1 упирается в стену коробок — героя перебрасывает через неё
-  [85, 12, 2, 3],
-  // За проходной — башня коробок, на макушке тайник со второй карточкой
-  [102, 12, 2, 3],
-  [104, 9, 2, 6],
-  // Подъём по стеллажам к третьей карточке
-  [120, 12, 3, 1],
-  [125, 10, 3, 1],
-  [130, 8, 3, 1],
-  [127, 4, 2, 1],
-  [135, 10, 7, 1],
-  // Рохля №2 и вторая стена коробок
-  [198, 12, 2, 3],
-  // Финишная прямая
-  [204, 12, 3, 1],
-  [209, 10, 3, 1],
-  [214, 12, 5, 1],
-];
-
-// Враги: [от тайла, до тайла, верхний ряд поверхности]. Побеждаются прыжком сверху, ударом или рохлей.
-const ENEMIES = [
-  [17, 25, GROUND_ROW],
-  [43, 52, 11],
-  [64, 71, GROUND_ROW],
-  [74, 82, GROUND_ROW],
-  [108, 118, GROUND_ROW],
-  [135, 142, 10],
-  [150, 158, GROUND_ROW],
-  [162, 170, GROUND_ROW],
-  [182, 189, GROUND_ROW],
-  [190, 196, GROUND_ROW],
-  [214, 219, 12],
-  [220, 226, GROUND_ROW],
-];
-
-// Болты: [первый тайл, верхний ряд поверхности, сколько штук в ряд, подъём над поверхностью в px].
-// Подъём 40 — над врагом (собираешь прыжком), 28 — на высоте героя, едущего на рохле.
-const BOLTS = [
-  [4, GROUND_ROW, 6],
-  [27, 12, 4],
-  [32, 9, 4],
-  [44, 11, 7, 40],
-  [61, GROUND_ROW, 22, 28],
-  [88, GROUND_ROW, 5],
-  [102, 12, 2],
-  [104, 9, 2],
-  [120, 12, 3],
-  [125, 10, 3],
-  [130, 8, 3],
-  [136, 10, 5, 40],
-  [151, GROUND_ROW, 6, 40],
-  [163, GROUND_ROW, 6, 40],
-  [178, GROUND_ROW, 18, 28],
-  [204, 12, 3],
-  [209, 10, 3],
-  [215, 12, 4, 40],
-  [221, GROUND_ROW, 5, 40],
-];
-
-// Проходная — в середине уровня, где над головой свободно и рядом нет врагов
-const CHECKPOINT_X = 95 * TILE + TILE / 2;
-const START_X = 48;
-
-// Бонусы: в тайлах по X, лежат над полом
-// Подсказки и сообщения бонусов идут по очереди, а не друг поверх друга — бонусы стоят между подсказками
-const HELMETS = [25, 100];
-const COFFEES = [146, 202];
-const TAPES = [46, 172];
-const PAINTS = [91];
-
-// Шайба Гроверная лежит сразу после первого ряда болтов, до первых препятствий
-const WASHER_POS = { x: 10 * TILE + TILE / 2, y: GROUND_TOP - 20 };
-
-// Рохли: [тайл, где стоит, тайл, где упрётся]. Путь — по полу, без коробок на дороге
-const ROHLYAS = [
-  [57, 85],
-  [176, 198],
-];
-
-// Карточки стандартов: [тайл по X, высота над полом в px]. Все три — только с двойным прыжком
-const CARD_SPOTS = [
-  [38, 174],
-  [105, 200],
-  [128, 190],
-];
-
-// Подсказки: показываются один раз, когда герой добегает до тайла
-const HINTS = [
-  [14, { keys: 'Пересортик! Прыгни ему на макушку\nили ударь — E', touch: 'Пересортик! Прыгни ему на макушку\nили ударь — кнопка E' }],
-  [31, 'Карточки стандартов спрятаны высоко.\nНайди все три!'],
-  [53, 'Рохля! Запрыгни на поддон —\nпрокатишься с ветерком'],
-];
-
-// Декор: реквизит на полу [тайл, имя, отразить] и лампы под потолком [тайлы]
-const PROPS = [
-  [2, 'barrel'],
-  [7, 'sacks'],
-  [21, 'extinguisher'],
-  [24, 'wrapped'],
-  [52, 'ladder'],
-  [89, 'crate_bolts'],
-  [112, 'sacks'],
-  [123, 'wrapped'],
-  [144, 'cart'],
-  [160, 'crate_bolts'],
-  [174, 'ladder'],
-  [203, 'sacks'],
-  [212, 'barrel'],
-];
-const LAMPS = [6, 26, 46, 66, 86, 106, 126, 146, 166, 186, 206, 224];
-
-const FINISH_X = 230 * TILE;
-
-// Склад: тайлсет и слои фона. Чем меньше коэффициент, тем дальше слой и медленнее он движется
-const TILESET = 'tiles_warehouse';
-const BACKGROUND = [
-  // Фон приглушён тоном: игровой план (герой, враги, болты) должен читаться первым
-  { key: 'bg_warehouse_wall', parallax: 0.15, tint: 0x9ca2b0 },
-  { key: 'bg_warehouse_racks', parallax: 0.4, tint: 0x8c93a3 },
-];
-
 export default class LevelScene extends Phaser.Scene {
   constructor() {
     super('Level');
   }
 
+  // Какой уровень строить: из data при запуске, иначе — тот же, что в прошлый раз (перезапуск после «Жизни кончились»)
+  init(data) {
+    this.levelKey = data?.level ?? this.registry.get('level') ?? 'warehouse';
+    this.registry.set('level', this.levelKey);
+  }
+
   create() {
-    const worldWidth = LEVEL_TILES_WIDE * TILE;
+    const L = (this.level = LEVELS[this.levelKey]);
+    const worldWidth = L.widthTiles * TILE;
     this.physics.world.setBounds(0, 0, worldWidth, GAME_HEIGHT);
-    audio.playMusic('warehouse');
+    audio.playMusic(L.music);
     this.finished = false;
     this.dead = false;
     this.pendingRespawn = false;
@@ -189,10 +59,10 @@ export default class LevelScene extends Phaser.Scene {
     // Действующие бонусы с таймером: имя → { remaining, duration, color }, время в мс
     this.buffs = new Map();
     this.airJumpUsed = false;
-    this.spawn = { x: START_X, y: GROUND_TOP - PLAYER.height / 2 };
+    this.spawn = { x: L.startTx * TILE, y: GROUND_TOP - PLAYER.height / 2 };
 
     // Фон: слои во весь экран, прокрутка — в updateParallax()
-    this.background = BACKGROUND.map(({ key, parallax, tint }) => ({
+    this.background = L.background.map(({ key, parallax, tint }) => ({
       parallax,
       sprite: this.add
         .tileSprite(0, 0, GAME_WIDTH, GROUND_TOP, key)
@@ -201,17 +71,19 @@ export default class LevelScene extends Phaser.Scene {
         .setDepth(-10)
         .setTint(tint),
     }));
-    addProps(this, PROPS, GROUND_TOP);
-    addLamps(this, LAMPS, GROUND_TOP);
+    addProps(this, L.props, GROUND_TOP);
+    addLamps(this, L.lamps, GROUND_TOP);
     addMotes(this);
-    addForeground(this, worldWidth);
+    // На арене в один экран передний план не проплывает, а стоит и закрывает бой — там его нет
+    if (L.foreground !== false) addForeground(this, worldWidth);
 
     this.platforms = [];
     this.addSolid(0, GROUND_TOP, worldWidth, GAME_HEIGHT - GROUND_TOP, 'ground');
-    PLATFORMS.forEach(([x, y, w, h]) => this.addSolid(x * TILE, y * TILE, w * TILE, h * TILE));
+    L.platforms.forEach(([x, y, w, h]) => this.addSolid(x * TILE, y * TILE, w * TILE, h * TILE));
 
     // Финиш — ворота отгрузки: герой забегает в проём, к фуре. Надпись — текстом игры, не в картинке
-    const gateX = FINISH_X + 12;
+    this.finishX = L.finishTx * TILE;
+    const gateX = this.finishX + 12;
     this.add.image(gateX, GROUND_TOP, 'loading_gate').setOrigin(0.5, 1);
     this.add
       .text(gateX, GROUND_TOP - 68, 'ОТГРУЗКА', {
@@ -223,7 +95,8 @@ export default class LevelScene extends Phaser.Scene {
       })
       .setOrigin(0.5, 1);
 
-    this.checkpoint = new Checkpoint(this, CHECKPOINT_X, GROUND_TOP);
+    // Проходной на арене босса нет
+    this.checkpoint = L.checkpointTx ? new Checkpoint(this, L.checkpointTx * TILE + TILE / 2, GROUND_TOP) : null;
 
     // Герой — спрайт 24×32, физическое тело 16×32 по центру: каска и руки выходят за тело по бокам
     this.hero = this.registry.get('hero') ?? 'male';
@@ -242,7 +115,7 @@ export default class LevelScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.platforms);
 
-    this.enemies = ENEMIES.map(([from, to, row]) => new Enemy(this, from * TILE, to * TILE, row * TILE));
+    this.enemies = L.enemies.map(([from, to, row]) => new Enemy(this, from * TILE, to * TILE, row * TILE));
     this.physics.add.overlap(
       this.player,
       this.enemies.map((e) => e.sprite),
@@ -250,7 +123,7 @@ export default class LevelScene extends Phaser.Scene {
     );
 
     // Рохли: запрыгнул на поддон — поехала, сбивает врагов на пути
-    this.rohlyas = ROHLYAS.map(([from, to]) => new Rohlya(this, from * TILE, GROUND_TOP, to * TILE));
+    this.rohlyas = L.rohlyas.map(([from, to]) => new Rohlya(this, from * TILE, GROUND_TOP, to * TILE));
     this.rohlyas.forEach((r) => {
       this.physics.add.collider(this.player, r.sprite, () => {
         if (this.player.body.touching.down && !this.dead) r.start();
@@ -260,18 +133,21 @@ export default class LevelScene extends Phaser.Scene {
       });
     });
 
-    this.physics.add.overlap(this.player, this.checkpoint.zone, () => this.reachCheckpoint());
+    if (this.checkpoint) this.physics.add.overlap(this.player, this.checkpoint.zone, () => this.reachCheckpoint());
 
-    this.helmets = HELMETS.map((tx) => new Helmet(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.boss = null;
+    if (L.boss) this.createBoss(L, gateX);
+
+    this.helmets = L.helmets.map((tx) => new Helmet(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.helmets.forEach((h) => this.physics.add.overlap(this.player, h.zone, () => this.pickHelmet(h)));
 
-    this.coffees = COFFEES.map((tx) => new Coffee(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.coffees = L.coffees.map((tx) => new Coffee(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.coffees.forEach((c) => this.physics.add.overlap(this.player, c.zone, () => this.pickCoffee(c)));
 
-    this.tapes = TAPES.map((tx) => new Tape(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.tapes = L.tapes.map((tx) => new Tape(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.tapes.forEach((t) => this.physics.add.overlap(this.player, t.zone, () => this.pickTape(t)));
 
-    this.paints = PAINTS.map((tx) => new Paint(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
+    this.paints = L.paints.map((tx) => new Paint(this, tx * TILE + TILE / 2, GROUND_TOP - 12));
     this.paints.forEach((p) => this.physics.add.overlap(this.player, p.zone, () => this.pickPaint(p)));
     this.paintColor = null;
 
@@ -281,14 +157,23 @@ export default class LevelScene extends Phaser.Scene {
       .setStrokeStyle(1, COLORS.tape)
       .setVisible(false);
 
-    this.washer = new Washer(this, WASHER_POS.x, WASHER_POS.y);
-    this.physics.add.overlap(this.player, this.washer.sprite, () => this.pickWasher());
+    // Шайба — на всю игру: подобрал на складе — она с тобой и у босса (и после «Заново»).
+    // На уровне без Шайбы (арена босса) она выдаётся сразу
+    const owned = this.registry.get('washer') || L.washerTx == null;
+    const wx = owned ? this.spawn.x : L.washerTx * TILE + TILE / 2;
+    this.washer = new Washer(this, wx, GROUND_TOP - 20);
+    if (owned) {
+      this.hasWasher = true;
+      this.washer.attach({ silent: true });
+    } else {
+      this.physics.add.overlap(this.player, this.washer.sprite, () => this.pickWasher());
+    }
 
     // Карточки стандартов: найденные в прошлых прохождениях — полупрозрачные
     const found = loadCards();
     this.cardsFound = 0;
-    this.cards = CARDS.warehouse.map((card, i) => {
-      const [tx, lift] = CARD_SPOTS[i];
+    this.cards = (L.cards ? CARDS[L.cards.set] : []).map((card, i) => {
+      const [tx, lift] = L.cards.spots[i];
       const sprite = this.add.sprite(tx * TILE + TILE / 2, GROUND_TOP - lift, 'card');
       if (found.has(card.id)) sprite.setAlpha(0.45);
       this.physics.add.existing(sprite, true);
@@ -304,29 +189,32 @@ export default class LevelScene extends Phaser.Scene {
     });
 
     this.bolts = [];
-    BOLTS.forEach(([tx, row, count, lift = 0]) => {
+    L.bolts.forEach(([tx, row, count, lift = 0]) => {
       for (let i = 0; i < count; i++) {
         this.addBolt((tx + i) * TILE + TILE / 2, row * TILE - 12 - lift);
       }
     });
     this.physics.add.overlap(this.player, this.bolts, (player, bolt) => this.collectBolt(bolt));
     // Всего болтов: лежащие на уровне + по два из каждого Пересортика
-    this.boltTotal = this.bolts.length + this.enemies.length * 2;
+    this.boltTotal =
+      this.bolts.length + this.enemies.length * 2 + (this.boss ? MIMIC.hp * MIMIC.boltsPerHit + MIMIC.boltsOnDefeat : 0);
 
     this.cameras.main.setBounds(0, 0, worldWidth, GAME_HEIGHT);
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
 
     // Панель под здоровьем и болтами — чтобы читались на любом фоне
-    this.add.rectangle(2, 2, 176, 15, COLORS.bg, 0.85).setOrigin(0).setStrokeStyle(1, COLORS.ground).setScrollFactor(0).setDepth(99);
+    this.add.rectangle(2, 2, this.cards.length ? 176 : 136, 15, COLORS.bg, 0.85).setOrigin(0).setStrokeStyle(1, COLORS.ground).setScrollFactor(0).setDepth(99);
     this.healthBar = new HealthBar(this, 6, 6, PLAYER.maxHealth);
     this.boltCounter = new BoltCounter(this, 58, 6);
     this.livesCounter = new LivesCounter(this, 100, 6, this.hero);
     this.livesCounter.set(this.registry.get('lives'));
+    // Счётчик карточек — только там, где они есть
     this.cardCounter = new CardCounter(this, 140, 6, this.cards.length);
     this.cardCounter.set(0);
+    this.cardCounter.setVisible(this.cards.length > 0);
     this.buffBar = new BuffBar(this, 6, 21);
-    showToast(this, 'Склад. Заказ горит — беги к воротам отгрузки!', { hold: 2200 });
-    this.hints = HINTS.map(([tx, text]) => ({
+    showToast(this, L.title, { hold: 2200 });
+    this.hints = L.hints.map(([tx, text]) => ({
       x: tx * TILE,
       text: typeof text === 'string' ? text : isTouchDevice ? text.touch : text.keys,
     }));
@@ -361,7 +249,7 @@ export default class LevelScene extends Phaser.Scene {
     this.platforms.push(rect);
 
     const tile = (name, tx, ty, tw = TILE, th = TILE) =>
-      this.add.tileSprite(tx, ty, tw, th, TILESET, frameOf(this, TILESET, name)).setOrigin(0);
+      this.add.tileSprite(tx, ty, tw, th, this.level.tileset, frameOf(this, this.level.tileset, name)).setOrigin(0);
 
     if (kind === 'ground') {
       tile('floor_top', x, y, w, TILE);
@@ -474,6 +362,21 @@ export default class LevelScene extends Phaser.Scene {
       if (e.dead) continue;
       const dx = (e.sprite.x - px) * this.facing;
       if (dx > -6 && dx < 30 && Math.abs(e.sprite.body.center.y - py) < 22) this.defeatEnemy(e, this.facing);
+    }
+    const boss = this.boss;
+    if (boss) {
+      // Удар по открытой пасти; летящий крепёж кулаком можно отбить
+      const dx = (boss.sprite.x - px) * this.facing;
+      if (boss.alive && dx > -10 && dx < MIMIC.bodyWidth / 2 + 30 && Math.abs(boss.sprite.body.center.y - py) < 40) {
+        if (boss.hit()) this.dropBossBolts(MIMIC.boltsPerHit);
+      }
+      boss.projectiles.getChildren().slice().forEach((p) => {
+        const pdx = (p.x - px) * this.facing;
+        if (pdx > -6 && pdx < 30 && Math.abs(p.y - py) < 24) {
+          playFx(this, p.x, p.y, 'spark', 'hit');
+          p.destroy();
+        }
+      });
     }
   }
 
@@ -651,13 +554,14 @@ export default class LevelScene extends Phaser.Scene {
   pickWasher() {
     if (this.hasWasher || this.dead) return;
     this.hasWasher = true;
+    this.registry.set('washer', true);
     this.washer.attach();
     audio.play('pickup');
     showToast(this, 'Шайба Гроверная теперь с тобой!\nВ воздухе прыгни ещё раз — двойной прыжок', { hold: 2500 });
   }
 
   reachCheckpoint() {
-    if (this.dead || !this.checkpoint.activate()) return;
+    if (this.dead || !this.checkpoint?.activate()) return;
     audio.play('checkpoint');
     this.spawn = { x: this.checkpoint.x, y: GROUND_TOP - PLAYER.height / 2 };
   }
@@ -675,7 +579,7 @@ export default class LevelScene extends Phaser.Scene {
     this.scene.pause();
     this.scene.launch('Death', {
       from: this.scene.key,
-      fromCheckpoint: this.checkpoint.active,
+      fromCheckpoint: !!this.checkpoint?.active,
       lives: this.registry.get('lives'),
     });
   }
@@ -698,6 +602,7 @@ export default class LevelScene extends Phaser.Scene {
     this.rohlyas.forEach((r) => {
       if (r.update(delta)) this.onRohlyaStop(r);
     });
+    if (this.boss) this.updateBoss(delta);
     this.washer.update(this.player, this.facing, delta);
     this.tickBuffs(delta);
     if (this.finished || this.dead) return;
@@ -766,7 +671,7 @@ export default class LevelScene extends Phaser.Scene {
       showToast(this, this.hints.shift().text, { hold: 2600 });
     }
 
-    if (this.player.x >= FINISH_X) this.finish();
+    if (this.player.x >= this.finishX) this.finish();
   }
 
   hurtPlayer(enemy) {
@@ -823,6 +728,7 @@ export default class LevelScene extends Phaser.Scene {
     const body = this.player.body;
     body.moves = true;
     body.reset(x, y);
+    this.boss?.resetAfterRespawn(x);
     this.player.clearTint();
     this.cameras.main.centerOn(x, y);
 
@@ -875,8 +781,47 @@ export default class LevelScene extends Phaser.Scene {
     this.player.setFlipX(false);
     this.playHeroAnim('victory');
     touch.setVisible(false);
+
+    const stats = {
+      bolts: this.boltCount,
+      boltTotal: this.boltTotal,
+      cards: this.cardsFound,
+      cardsTotal: this.cards.length,
+      enemies: this.enemiesBeaten,
+      enemiesTotal: this.enemies.length,
+    };
+    let title;
+    let lines;
+    if (this.level.next) {
+      // Уровень мира пройден — итог за уровень, дальше следующий (на складе — зона отгрузки с боссом)
+      this.registry.set('stats', stats);
+      title = this.level.finishTitle;
+      lines = [
+        `Болты: ${stats.bolts} из ${stats.boltTotal}`,
+        `Карточки стандартов: ${stats.cards} из ${stats.cardsTotal}`,
+        `Пересортиков разобрано: ${stats.enemies} из ${stats.enemiesTotal}`,
+        '',
+        this.level.nextHint,
+      ];
+      this.time.delayedCall(4000, () => this.scene.start('Level', { level: this.level.next }));
+    } else {
+      // Мир пройден — итог за весь мир
+      const prev = this.registry.get('stats') ?? {};
+      const sum = (k) => (prev[k] ?? 0) + stats[k];
+      title = this.level.finishTitle;
+      lines = [
+        this.level.finishLine,
+        '',
+        `Болты: ${sum('bolts')} из ${sum('boltTotal')}`,
+        `Карточки стандартов: ${sum('cards')} из ${sum('cardsTotal')}`,
+        `Пересортиков разобрано: ${sum('enemies')} из ${sum('enemiesTotal')}`,
+      ];
+      this.registry.remove('stats');
+      this.time.delayedCall(5500, () => this.scene.start('Menu'));
+    }
+
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'Заказ отгружен!', {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30, title, {
         fontFamily: FONT.family,
         fontSize: FONT.heading,
         color: COLORS.text,
@@ -886,13 +831,8 @@ export default class LevelScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setScrollFactor(0)
       .setDepth(100);
-    const summary = [
-      `Болты: ${this.boltCount} из ${this.boltTotal}`,
-      `Карточки стандартов: ${this.cardsFound} из ${this.cards.length}`,
-      `Пересортиков разобрано: ${this.enemiesBeaten} из ${this.enemies.length}`,
-    ].join('\n');
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 4, summary, {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 6, lines.join('\n'), {
         fontFamily: FONT.family,
         fontSize: FONT.body,
         color: COLORS.text,
@@ -904,7 +844,110 @@ export default class LevelScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(100);
-    this.time.delayedCall(4000, () => this.scene.start('Menu'));
+  }
+
+  // ---------- Босс ----------
+
+  createBoss(L, gateX) {
+    const B = L.boss;
+    this.boss = new BossMimic(this, B.tx * TILE, GROUND_TOP, B.minTx * TILE, B.maxTx * TILE);
+    this.bossWakeX = B.wakeTx * TILE;
+    this.bossBeaten = false;
+    // Ящик ходит только по полу — на балки не запрыгивает
+    this.physics.add.collider(this.boss.sprite, this.platforms[0]);
+    this.physics.add.overlap(this.player, this.boss.sprite, () => this.touchBoss());
+    // Phaser может передать участников столкновения в любом порядке — снаряд ищем по группе,
+    // иначе вместо гайки можно «уничтожить» пол
+    const projectileOf = (a, b) => (this.boss.projectiles.contains(a) ? a : b);
+    this.physics.add.collider(this.boss.projectiles, this.platforms, (a, b) => {
+      const p = projectileOf(a, b);
+      playFx(this, p.x, p.y, 'spark', 'hit');
+      p.destroy();
+    });
+    this.physics.add.overlap(this.player, this.boss.projectiles, (a, b) => {
+      const p = projectileOf(a, b);
+      if (this.dead || this.finished || this.isShielded()) return;
+      this.hurtPlayer(p);
+      p.destroy();
+    });
+
+    // Ворота закрыты рулонным затвором, пока ящик не разобран: стальные ламели, по ним не пройти
+    const shutterTop = GROUND_TOP - 50;
+    this.shutter = this.add.graphics().setDepth(4);
+    this.shutter.fillStyle(0x5d6470).fillRect(gateX - 20, shutterTop, 40, 50);
+    this.shutter.fillStyle(0x454b55);
+    for (let y = shutterTop + 3; y < GROUND_TOP; y += 4) this.shutter.fillRect(gateX - 20, y, 40, 1);
+    this.shutter.fillStyle(0x0b0c0f).fillRect(gateX - 20, GROUND_TOP - 3, 40, 3);
+    this.shutterBody = this.add.rectangle(gateX - 22, shutterTop, 8, 50).setOrigin(0).setVisible(false);
+    this.physics.add.existing(this.shutterBody, true);
+    this.platforms.push(this.shutterBody);
+
+    // Здоровье босса — внизу по центру, на полу: вверху живут сообщения
+    const cx = GAME_WIDTH / 2;
+    this.bossBar = [
+      this.add.rectangle(cx, 255, 176, 16, COLORS.bg, 0.88).setStrokeStyle(1, COLORS.ground),
+      this.add.text(cx - 82, 255, 'Ящик «Разное»', { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.text }).setOrigin(0, 0.5),
+    ];
+    this.bossCells = [];
+    for (let i = 0; i < MIMIC.hp; i++) {
+      this.bossCells.push(this.add.rectangle(cx + 34 + i * 16, 255, 13, 6, 0xb8325a).setStrokeStyle(1, 0x0b0c0f));
+    }
+    [...this.bossBar, ...this.bossCells].forEach((o) => o.setScrollFactor(0).setDepth(99).setVisible(false));
+  }
+
+  updateBoss(delta) {
+    const boss = this.boss;
+    boss.update(delta, this.player);
+    if (boss.state === 'sleep' && this.player.x >= this.bossWakeX && !this.dead) {
+      boss.wake();
+      [...this.bossBar, ...this.bossCells].forEach((o) => o.setVisible(true));
+      const hint = isTouchDevice
+        ? 'Это мимик! Бей, когда пасть открыта:\nпрыгни сверху или кнопка E'
+        : 'Это мимик! Бей, когда пасть открыта:\nпрыгни сверху или E';
+      showToast(this, hint, { hold: 3500 });
+    }
+    this.bossCells.forEach((c, i) => c.setFillStyle(i < boss.hp ? 0xb8325a : 0x31353e));
+    if (!boss.alive && !this.bossBeaten) this.onBossBeaten();
+  }
+
+  touchBoss() {
+    const boss = this.boss;
+    if (!boss.alive || boss.state === 'sleep' || this.dead || this.finished) return;
+    const pb = this.player.body;
+    const bb = boss.sprite.body;
+    if (pb.velocity.y > 0 && pb.prev.y + pb.height <= bb.top + 8) {
+      // Сверху: по открытой пасти — удар, по крышке — «клац». Отскок в любом случае
+      if (!boss.hit()) boss.clank();
+      else this.dropBossBolts(MIMIC.boltsPerHit);
+      const held = this.controls.jumpHeld;
+      pb.setVelocityY(-PLAYER.jumpVelocity * (held ? 1.05 : 0.8));
+      pb.setVelocityX(this.player.x < boss.sprite.x ? -110 : 110);
+      this.jumpCut = !held;
+      this.airJumpUsed = false;
+      return;
+    }
+    // Пока пасть открыта или ящик оглушён, касание сбоку не ранит — честно для новичка
+    if (boss.vulnerable || boss.state === 'hurt') return;
+    this.hurtPlayer(boss.sprite);
+  }
+
+  dropBossBolts(count) {
+    const { x, y } = this.boss.sprite;
+    for (let i = 0; i < count; i++) this.popBolt(x - (count - 1) * 7 + i * 14, y - 40);
+  }
+
+  onBossBeaten() {
+    this.bossBeaten = true;
+    this.time.delayedCall(500, () => {
+      this.dropBossBolts(MIMIC.boltsOnDefeat);
+      showToast(this, 'Ящик «Разное» разобран по ячейкам!\nВорота открыты', { hold: 3000 });
+      [...this.bossBar, ...this.bossCells].forEach((o) => o.setVisible(false));
+      // Затвор уезжает вверх
+      this.platforms.splice(this.platforms.indexOf(this.shutterBody), 1);
+      this.shutterBody.destroy();
+      audio.play('rohlya');
+      this.tweens.add({ targets: this.shutter, y: -50, alpha: 0, duration: 900, ease: 'Quad.easeIn' });
+    });
   }
 }
 

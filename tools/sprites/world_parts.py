@@ -825,3 +825,185 @@ write("objects/props", [
     "# Реквизит склада — декор без физики. Кадр 32×32, низ по центру. Имя анимации = предмет.",
     "# Собран в tools/sprites/world_parts.py — правь там.",
 ], 32, 32, [(name, 1, False, [rows]) for name, rows in PROPS])
+
+
+# ---------- Босс Склада: Ящик-мимик «Разное» (64×56) ----------
+# Картонный ящик, в который свалили всё подряд. Притворяется коробкой, потом открывает пасть
+# с зубами-скобами и плюётся вперемешку гайками, болтами и шайбами. Надпись «РАЗНОЕ» на белой
+# наклейке пишет игра (текст — не в картинке). Наклейка всегда на одном месте: x 7–56, y 34–45 (под «РАЗНОЕ» шрифтом 8 — 48 px).
+
+def mimic_body(c, top):
+    """Короб от строки top до низа кадра: картон, свет слева, тень справа, контур, наклейка."""
+    c.rect(4, top, 56, 56 - top, "W")
+    c.rect(5, top, 3, 56 - top, "X")
+    c.rect(55, top, 4, 56 - top, "w")
+    c.rect(4, 53, 56, 2, "w")
+    for y in range(top, 56):
+        c.put(3, y, "K")
+        c.put(60, y, "K")
+    c.rect(3, 55, 58, 1, "K")
+    # Вмятины и потёртости картона
+    for x, y in ((12, 50), (40, 49), (50, 30), (9, 29)):
+        if y >= top:
+            c.put(x, y, "w")
+    # Наклейка под надпись
+    c.rect(7, 34, 50, 12, "6")
+    c.rect(7, 45, 50, 1, "5")
+    c.rect(6, 33, 52, 1, "K")
+    c.rect(6, 46, 52, 1, "K")
+    c.rect(6, 33, 1, 14, "K")
+    c.rect(57, 33, 1, 14, "K")
+
+
+def mimic_lid_closed(c, y):
+    # Крышка-клапаны сверху (вид чуть сверху): светлый картон, шов посередине, полоса скотча
+    c.rect(4, y, 56, 6, "X")
+    c.rect(4, y + 5, 56, 1, "W")
+    c.rect(31, y, 2, 6, "w")
+    c.rect(28, y, 8, 6, "4")
+    c.rect(28, y, 8, 1, "5")
+    c.rect(3, y - 1, 58, 1, "K")
+    c.rect(3, y, 1, 6, "K")
+    c.rect(60, y, 1, 6, "K")
+
+
+def mimic_eyes(c, y, kind):
+    for ex in (20, 38):
+        if kind == "glow":
+            c.rect(ex, y, 6, 3, "Z")
+            c.rect(ex + 2, y + 1, 2, 1, "6")
+        elif kind == "open":
+            c.rect(ex, y, 7, 5, "6")
+            c.rect(ex + 3 if ex == 20 else ex + 1, y + 1, 3, 3, "K")
+            # Злые брови
+            c.rect(ex - 1, y - 2, 8, 1, "K")
+            c.put(ex + (6 if ex == 20 else 0), y - 1, "K")
+        elif kind == "tired":
+            c.rect(ex, y + 2, 7, 3, "6")
+            c.rect(ex, y + 1, 7, 1, "K")
+            c.rect(ex + 2, y + 3, 3, 2, "K")
+        elif kind == "x":
+            for i in range(5):
+                c.put(ex + i + 1, y + i, "6")
+                c.put(ex + 5 - i, y + i, "6")
+
+
+def mimic_mouth(c, lid_y, tongue):
+    """Открытая пасть: поднятая крышка с глазами на изнанке, зубы-скобы, язык, крепёж внутри."""
+    # Изнанка поднятой крышки
+    c.rect(6, lid_y, 52, 14 - lid_y + 2, "w")
+    c.rect(6, lid_y, 52, 1, "W")
+    c.rect(5, lid_y - 1, 54, 1, "K")
+    c.rect(5, lid_y, 1, 16 - lid_y, "K")
+    c.rect(58, lid_y, 1, 16 - lid_y, "K")
+    # Тёмная пасть
+    c.rect(6, 16, 52, 10, "D")
+    c.rect(6, 16, 52, 2, "K")
+    # Крепёж вперемешку внутри
+    for x, y, ch in ((12, 21, "4"), (13, 21, "3"), (44, 20, "4"), (45, 21, "3"), (30, 22, "2"), (36, 21, "5"), (20, 22, "1")):
+        c.put(x, y, ch)
+    # Зубы-скобы: сверху вниз и снизу вверх
+    for x in range(8, 57, 6):
+        c.rect(x, 16, 3, 1, "5")
+        c.put(x, 17, "4")
+        c.put(x + 2, 17, "4")
+        c.rect(x + 2, 25, 3, 1, "5")
+        c.put(x + 2, 24, "4")
+        c.put(x + 4, 24, "4")
+    # Язык — вишнёвый, свисает через край
+    c.rect(26, 22, 12, 4, "x")
+    c.rect(28, 26, 8, tongue, "x")
+    c.rect(29, 22, 2, 2, "T")
+    c.rect(28, 26 + tongue, 8, 1, "c")
+
+
+def mimic(state, frame=0):
+    c = Canvas(64, 56)
+    if state == "closed":
+        mimic_body(c, 16)
+        mimic_lid_closed(c, 10)
+    elif state == "peek":
+        mimic_body(c, 16)
+        c.rect(4, 11, 56, 5, "K")  # щель под приподнятой крышкой
+        mimic_eyes(c, 12, "glow")
+        mimic_lid_closed(c, 6)
+    elif state in ("open", "tired", "hurt"):
+        mimic_body(c, 26)
+        lid_y = 1 if state == "open" else 5
+        tongue = {"open": 4, "tired": 5 + frame, "hurt": 2}[state]
+        mimic_mouth(c, lid_y, tongue)
+        mimic_eyes(c, lid_y + 5, {"open": "open", "tired": "tired", "hurt": "x"}[state])
+    elif state == "folded":
+        # Разобран: сплющенный картон, крышка набок, наклейка — краем
+        c.rect(2, 44, 60, 10, "W")
+        c.rect(2, 44, 60, 2, "X")
+        c.rect(2, 52, 60, 2, "w")
+        c.rect(1, 43, 62, 1, "K")
+        c.rect(1, 54, 62, 1, "K")
+        c.rect(1, 43, 1, 12, "K")
+        c.rect(62, 43, 1, 12, "K")
+        c.rect(20, 46, 24, 4, "6")
+        c.rect(20, 49, 24, 1, "5")
+        for x in (8, 54):
+            c.rect(x, 50, 2, 1, "w")
+    return c.rows()
+
+
+FASTENERS = {
+    "nut": [
+        "..KKKK..",
+        ".K5543K.",
+        "K54KK43K",
+        "K4K..K3K",
+        "K4K..K2K",
+        "K43KK32K",
+        ".K3322K.",
+        "..KKKK..",
+    ],
+    "bolt": [
+        ".KKKKK..",
+        "K55443K.",
+        "K44332K.",
+        ".KK4KKK.",
+        "..K43K..",
+        "..K32K..",
+        "..K43K..",
+        "...KK...",
+    ],
+    "washer": [
+        "..KKKK..",
+        ".KLbbBK.",
+        "KLbKKBnK",
+        "KbK..KnK",
+        "KbK..KnK",
+        "KBnKKnNK",
+        ".KnnNNK.",
+        "..KKKK..",
+    ],
+    "screw": [
+        "...KK...",
+        "..K54K..",
+        "..K43K..",
+        ".KK4KKK.",
+        "..K43K..",
+        ".KK3KK..",
+        "..K32K..",
+        "...KK...",
+    ],
+}
+
+write("bosses/mimic", [
+    "# Босс Склада — Ящик-мимик «Разное». Кадр 64×56, опорная точка — низ по центру.",
+    "# Состояния: закрыт (притворяется), подглядывает, пасть открыта, устал (язык наружу), получил удар, разобран.",
+    "# Надпись «РАЗНОЕ» на наклейке (x 7–56, y 34–45) пишет игра. Собран в tools/sprites/world_parts.py — правь там.",
+], 64, 56, [
+    ("closed", 1, False, [mimic("closed")]),
+    ("peek", 1, False, [mimic("peek")]),
+    ("open", 1, False, [mimic("open")]),
+    ("tired", 4, True, [mimic("tired", 0), mimic("tired", 1)]),
+    ("hurt", 1, False, [mimic("hurt")]),
+    ("folded", 1, False, [mimic("folded")]),
+])
+write("bosses/fasteners", [
+    "# Снаряды Ящика «Разное» — пересорт вперемешку: гайка, болт, синяя шайба, саморез. 8×8, центр.",
+], 8, 8, [(name, 1, False, [rows]) for name, rows in FASTENERS.items()])

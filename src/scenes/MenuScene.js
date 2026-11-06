@@ -92,6 +92,8 @@ export default class MenuScene extends Phaser.Scene {
     // Новая игра: жизни и счёт болтов к следующей жизни — с начала
     this.registry.set('lives', LIVES.start);
     this.registry.set('boltBank', 0);
-    this.scene.start('Level');
+    this.registry.set('washer', false);
+    this.registry.remove('stats');
+    this.scene.start('Level', { level: 'warehouse' });
   }
 }
