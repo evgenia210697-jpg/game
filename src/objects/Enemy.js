@@ -4,16 +4,23 @@ import { playFx } from '../gfx/fx.js';
 // Враг-патрульный Пересортик: ходит между minX и maxX по поверхности с верхом на surfaceY.
 // Картинка 24×24, физическое тело — 16×16 у низа кадра: гайки и макушка выходят за тело.
 // Побеждается прыжком сверху, ударом (E) или рохлей.
+// Виды врагов: картинка ходьбы, гибели и эффект, которым он исчезает. Механика у всех одна.
+const KINDS = {
+  peresort: { walk: 'peresort:walk', defeat: 'peresort_defeat:defeat', fx: ['rust', 'burst'] },
+  monday: { walk: 'monday:walk', defeat: 'monday_defeat:defeat', fx: ['puff', 'pick'] },
+};
+
 export default class Enemy {
-  constructor(scene, minX, maxX, surfaceY) {
+  constructor(scene, minX, maxX, surfaceY, kind = 'peresort') {
+    this.kind = KINDS[kind];
     this.scene = scene;
     this.minX = minX + ENEMY.width / 2;
     this.maxX = maxX - ENEMY.width / 2;
     this.dead = false;
 
     // Разные враги шагают не в такт — с разного кадра
-    this.sprite = scene.add.sprite(this.minX, surfaceY - 12, 'peresort').play({
-      key: 'peresort:walk',
+    this.sprite = scene.add.sprite(this.minX, surfaceY - 12, kind).play({
+      key: this.kind.walk,
       startFrame: Math.floor(minX / 16) % 4,
     });
     this.sprite.owner = this;
@@ -43,10 +50,10 @@ export default class Enemy {
     const { scene, sprite } = this;
     sprite.body.setVelocity(0, 0);
     sprite.body.enable = false;
-    sprite.play('peresort_defeat:defeat');
+    sprite.play(this.kind.defeat);
     if (dir) scene.tweens.add({ targets: sprite, x: sprite.x + dir * 10, duration: 200, ease: 'Quad.easeOut' });
     scene.time.delayedCall(260, () => {
-      playFx(scene, sprite.x, sprite.y + 2, 'rust', 'burst');
+      playFx(scene, sprite.x, sprite.y + 2, ...this.kind.fx);
       sprite.destroy();
     });
     return true;

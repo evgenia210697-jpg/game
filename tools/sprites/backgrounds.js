@@ -132,3 +132,102 @@ save('warehouse_wall', wall);
 save('warehouse_racks', racks);
 preview('warehouse', [wall, racks]);
 console.log('✓ фоны: warehouse_wall, warehouse_racks (480×240)');
+
+// ---------- Офис (пролог) ----------
+
+// Дальний слой: стена опенспейса, панорамные окна на вечерний город (пятница, 16:47),
+// потолок с панелями-светильниками, часы на стене показывают 16:47.
+function officeWall() {
+  const img = makeImage(W, H, PALETTE_MAP['2'].hex);
+  // Потолок: подвесные панели и светильники
+  rect(img, 0, 0, W, 30, 'd');
+  for (let x = 0; x < W; x += 40) rect(img, x, 0, 1, 30, '1');
+  rect(img, 0, 14, W, 1, '1');
+  for (let x = 12; x < W; x += 80) {
+    rect(img, x, 20, 24, 4, '5');
+    rect(img, x + 1, 21, 22, 2, '6');
+  }
+  rect(img, 0, 29, W, 2, '1');
+  // Окна: небо от синего к тёплому у горизонта, силуэты домов с огоньками
+  const rand = rng(11);
+  for (let x0 = 16; x0 < W; x0 += 160) {
+    const top = 46;
+    const h = 110;
+    rect(img, x0 - 3, top - 3, 134, h + 6, 'D');
+    const bands = ['a', 'A', 'A', 'e', 'e', 'Z'];
+    for (let i = 0; i < bands.length; i++) rect(img, x0, top + Math.floor((h * i) / bands.length), 128, Math.ceil(h / bands.length), bands[i]);
+    // Город
+    let x = x0;
+    while (x < x0 + 128) {
+      const bw = 8 + Math.floor(rand() * 14);
+      const bh = 18 + Math.floor(rand() * 46);
+      const w = Math.min(bw, x0 + 128 - x);
+      rect(img, x, top + h - bh, w, bh, 'a');
+      for (let wy = top + h - bh + 3; wy < top + h - 2; wy += 5)
+        for (let wx = x + 2; wx < x + w - 1; wx += 4) if (rand() < 0.35) putPixel(img, wx, wy, C('Z'));
+      x += w + 1;
+    }
+    // Переплёт
+    for (let i = 1; i < 4; i++) rect(img, x0 + i * 32, top, 2, h, 'D');
+    rect(img, x0, top + 40, 128, 2, 'D');
+    // Подоконник
+    rect(img, x0 - 4, top + h + 3, 136, 3, '3');
+  }
+  // Часы между окнами: 16:47 — часовая стрелка у пяти, минутная — у девяти
+  for (let cx = 160; cx < W; cx += 160) {
+    const cy = 70;
+    for (let y = -9; y <= 9; y++)
+      for (let x = -9; x <= 9; x++) {
+        const d = x * x + y * y;
+        if (d <= 81) putPixel(img, cx + x, cy + y, C(d > 64 ? 'K' : '6'));
+      }
+    for (let i = 0; i <= 5; i++) putPixel(img, cx + Math.round(i * 0.45), cy + Math.round(i * 0.85), C('K')); // часовая
+    for (let i = 0; i <= 7; i++) putPixel(img, cx - i, cy + Math.round(i * 0.1), C('K')); // минутная
+    putPixel(img, cx, cy, C('x'));
+  }
+  // Нижняя панель стены и плинтус
+  rect(img, 0, 180, W, 60, 'd');
+  rect(img, 0, 180, W, 2, '1');
+  for (let y = 200; y < H; y++) for (let x = 0; x < W; x += 2) putPixel(img, x + (y % 2), y, C('D'));
+  return img;
+}
+
+// Средний слой: опенспейс — ряды столов, мониторы с бирюзовыми экранами, перегородки, растения.
+function officeDesks() {
+  const img = makeImage(W, H);
+  const rand = rng(23);
+  for (let x0 = 0; x0 < W; x0 += 120) {
+    // Перегородка
+    rect(img, x0 + 4, 168, 112, 28, 'g');
+    rect(img, x0 + 4, 168, 112, 2, 'G');
+    for (let x = x0 + 4; x < x0 + 116; x += 28) rect(img, x, 168, 1, 28, 'k');
+    // Мониторы над перегородкой
+    for (let i = 0; i < 3; i++) {
+      const mx = x0 + 14 + i * 34 + Math.floor(rand() * 6);
+      rect(img, mx, 150, 20, 14, 'k');
+      rect(img, mx + 1, 151, 18, 11, rand() < 0.7 ? 'a' : 'A');
+      rect(img, mx + 2, 152, 6, 1, 't');
+      rect(img, mx + 2, 154, 10, 1, 'a');
+      rect(img, mx + 9, 164, 2, 4, 'k');
+    }
+    // Столы и тумбы
+    rect(img, x0, 196, 120, 3, '1');
+    rect(img, x0 + 10, 199, 18, 41, 'D');
+    rect(img, x0 + 90, 199, 18, 41, 'D');
+    // Растение в углу
+    const px = x0 + 58;
+    rect(img, px, 222, 8, 18, 'w');
+    for (let y = 196; y < 222; y++) {
+      const half = 8 - Math.abs(y - 208) / 2;
+      rect(img, px + 4 - Math.floor(half), y, Math.floor(half) * 2, 1, (y + px) % 3 ? 'g' : 'G');
+    }
+  }
+  return img;
+}
+
+const officeWallImg = officeWall();
+const officeDesksImg = officeDesks();
+save('office_wall', officeWallImg);
+save('office_desks', officeDesksImg);
+preview('office', [officeWallImg, officeDesksImg]);
+console.log('✓ фоны: office_wall, office_desks (480×240)');

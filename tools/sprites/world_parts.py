@@ -1007,3 +1007,379 @@ write("bosses/mimic", [
 write("bosses/fasteners", [
     "# Снаряды Ящика «Разное» — пересорт вперемешку: гайка, болт, синяя шайба, саморез. 8×8, центр.",
 ], 8, 8, [(name, 1, False, [rows]) for name, rows in FASTENERS.items()])
+
+
+# ---------- Пролог: враг Понедельник (24×24) ----------
+# Отрывной листок календаря на ножках: красная шапка с кольцами, хмурое невыспавшееся лицо,
+# серо-синий — цвет «понедельничного» настроения. Число не рисуем: русский текст — только текстом игры.
+
+def monday(bob=0, step=0):
+    c = Canvas(24, 24)
+    # Ноги
+    back_x, front_x = {0: (8, 13), 1: (7, 14), -1: (9, 12)}[step]
+    for lx in (back_x, front_x):
+        c.rect(lx, 19, 2, 3, "K")
+        c.rect(lx, 22, 3, 1, "K")
+    # Листок: белый с тенью снизу-справа
+    top = 4 + bob
+    c.rect(5, top, 14, 16, "6")
+    c.rect(17, top, 2, 16, "5")
+    c.rect(5, top + 14, 14, 2, "5")
+    c.rect(5, top, 14, 4, "x")  # красная шапка
+    c.rect(5, top, 14, 1, "T")
+    for rx in (8, 15):  # кольца
+        c.rect(rx, top - 2, 1, 3, "3")
+        c.put(rx, top - 3, "K")
+    # Контур
+    for y in range(top, top + 16):
+        c.put(4, y, "K")
+        c.put(19, y, "K")
+    c.rect(4, top - 1, 16, 1, "K")
+    c.rect(4, top + 16, 16, 1, "K")
+    # Лицо: тяжёлые веки, мешки под глазами, кривой рот
+    fy = top + 6
+    for ex in (8, 13):
+        c.rect(ex, fy, 3, 1, "K")
+        c.rect(ex, fy + 1, 3, 1, "a")
+        c.put(ex + 1, fy + 1, "K")
+        c.rect(ex, fy + 2, 3, 1, "e")
+    c.rect(10, fy + 5, 4, 1, "K")
+    c.put(9, fy + 6, "K")
+    c.put(14, fy + 4, "K")
+    # Загнутый уголок листка
+    c.put(18, top + 15, "4")
+    c.put(17, top + 15, "4")
+    return c.rows()
+
+
+def monday_defeat(stage):
+    # Листок отрывается и улетает: перекос → скомкан
+    c = Canvas(24, 24)
+    if stage == 0:
+        for i in range(14):
+            c.rect(5 + i, 6 + i // 3, 1, 14, "6")
+        c.rect(5, 6, 14, 3, "x")
+        c.rect(8, 13, 3, 1, "K")
+        c.rect(13, 14, 3, 1, "K")
+        for y in range(6, 24):
+            pass
+    else:
+        cells = c.ellipse(12, 15, 6, 5, "6654")
+        c.outline(cells)
+        c.rect(9, 11, 6, 2, "x")
+        c.put(10, 15, "K")
+        c.put(14, 15, "K")
+    return c.rows()
+
+
+write("enemies/monday", [
+    "# Понедельник — враг пролога (ТЗ, раздел 4): хмурый листок отрывного календаря. 24×24, низ по центру.",
+    "# Физическое тело — 16×16 у низа кадра, как у Пересортика. Собран в tools/sprites/world_parts.py — правь там.",
+], 24, 24, [
+    ("walk", 6, True, [monday(0, 1), monday(-1, 0), monday(0, -1), monday(-1, 0)]),
+])
+write("enemies/monday_defeat", ["# Понедельник оторван: листок перекосило → скомкан. 24×24."], 24, 24, [
+    ("defeat", 8, False, [monday_defeat(0), monday_defeat(1)]),
+])
+
+
+# ---------- Пролог: чайник, кружка, дверь на склад ----------
+
+def kettle(steam):
+    # Электрочайник 16×16: белый корпус, синяя кнопка, пар
+    c = Canvas(16, 16)
+    cells = set()
+    for y in range(5, 15):
+        for x in range(3, 12):
+            cells.add((x, y))
+    c.rect(3, 5, 9, 10, "6")
+    c.rect(3, 5, 2, 10, "6")
+    c.rect(10, 5, 2, 10, "5")
+    c.rect(3, 13, 9, 2, "4")
+    c.rect(2, 15, 11, 1, "2")  # подставка
+    c.rect(4, 4, 7, 1, "5")  # крышка
+    c.rect(6, 3, 3, 1, "4")
+    c.rect(12, 6, 2, 1, "K")  # ручка
+    c.rect(13, 6, 1, 6, "K")
+    c.rect(12, 11, 2, 1, "K")
+    c.rect(1, 6, 2, 1, "5")  # носик
+    c.put(0, 5, "5")
+    c.rect(5, 8, 2, 1, "B")  # кнопка
+    c.rect(4, 10, 6, 1, "e")  # окошко уровня воды
+    c.outline(cells | {(4, 4), (6, 3)})
+    if steam is not None:
+        for i, (x, y) in enumerate(((1, 3), (0, 1), (1, 0)) if steam == 0 else ((0, 3), (1, 1), (0, 0))):
+            c.put(x, y, "5" if i == 0 else "4")
+    return c.rows()
+
+
+def cup():
+    # Кружка с кофе 8×8 — значок в панели и в руках героя
+    c = Canvas(8, 8)
+    c.rect(1, 2, 5, 5, "6")
+    c.rect(1, 2, 5, 1, "w")
+    c.rect(5, 3, 1, 4, "5")
+    c.rect(6, 3, 1, 1, "K")
+    c.rect(7, 4, 1, 2, "K")
+    c.rect(6, 6, 1, 1, "K")
+    for y in range(2, 8):
+        c.put(0, y, "K")
+        c.put(6, y, "K") if y < 3 or y > 6 else None
+    c.rect(0, 7, 7, 1, "K")
+    c.rect(1, 1, 5, 1, "K")
+    c.put(2, 0, "4")
+    c.put(4, 0, "5")
+    return c.rows()
+
+
+def office_door(opened):
+    # Дверь «на склад» 32×48: стальная, с окошком; открыта — за ней склад
+    c = Canvas(32, 48)
+    c.rect(0, 0, 32, 48, "1")
+    c.rect(0, 0, 32, 1, "K")
+    c.rect(0, 0, 1, 48, "K")
+    c.rect(31, 0, 1, 48, "K")
+    c.rect(1, 1, 30, 2, "3")
+    if opened:
+        c.rect(3, 4, 26, 44, "D")
+        # Склад за дверью: стеллажи и тёплый свет
+        c.rect(3, 4, 26, 44, "d")
+        for y in (14, 26, 38):
+            c.rect(3, y, 26, 1, "N")
+            for x in range(5, 27, 7):
+                c.rect(x, y - 6, 5, 6, "w")
+        c.rect(3, 4, 2, 44, "1")
+        c.rect(3, 4, 26, 2, "Z")
+        # Створка распахнута наружу — видна ребром
+        c.rect(26, 4, 3, 44, "3")
+        c.rect(26, 4, 1, 44, "5")
+    else:
+        c.rect(3, 4, 26, 44, "3")
+        c.rect(3, 4, 1, 44, "4")
+        c.rect(28, 4, 1, 44, "2")
+        c.rect(9, 9, 14, 10, "K")
+        c.rect(10, 10, 12, 8, "A")
+        c.rect(10, 10, 12, 2, "e")
+        c.rect(23, 26, 4, 2, "5")  # ручка
+        c.rect(23, 28, 1, 1, "K")
+        c.rect(3, 40, 26, 1, "2")
+        c.rect(25, 30, 2, 2, "x")  # лампочка замка: закрыто
+    return c.rows()
+
+
+# Реквизит офиса (32×32, низ по центру)
+def prop_plant():
+    c = Canvas(32, 32)
+    c.rect(11, 22, 10, 10, "w")
+    c.rect(11, 22, 10, 2, "W")
+    c.rect(10, 21, 12, 1, "K")
+    for y in range(22, 32):
+        c.put(10, y, "K")
+        c.put(21, y, "K")
+    c.rect(10, 31, 12, 1, "K")
+    for cx, cy, rx, ry in ((16, 14, 6, 7), (10, 17, 4, 4), (22, 16, 4, 5), (16, 7, 3, 4)):
+        cells = c.ellipse(cx, cy, rx, ry, "VvGg")
+        c.outline(cells)
+    return c.rows()
+
+
+def prop_cooler():
+    c = Canvas(32, 32)
+    c.rect(10, 14, 12, 18, "5")
+    c.rect(10, 14, 2, 18, "6")
+    c.rect(20, 14, 2, 18, "4")
+    c.rect(13, 20, 6, 3, "1")
+    c.put(14, 21, "B")
+    c.put(17, 21, "x")
+    for y in range(14, 32):
+        c.put(9, y, "K")
+        c.put(22, y, "K")
+    cells = c.ellipse(16, 8, 5, 6.5, "LbeA")  # бутыль с водой
+    c.outline(cells)
+    c.rect(14, 13, 4, 1, "A")
+    return c.rows()
+
+
+def prop_printer():
+    c = Canvas(32, 32)
+    c.rect(5, 26, 22, 6, "2")  # тумба
+    c.rect(5, 26, 22, 1, "3")
+    c.rect(7, 16, 18, 10, "4")
+    c.rect(7, 16, 18, 2, "5")
+    c.rect(9, 20, 14, 1, "K")  # щель лотка
+    c.rect(10, 13, 12, 3, "6")  # бумага
+    c.rect(19, 18, 2, 1, "v")
+    for y in range(16, 32):
+        c.put(4 if y >= 26 else 6, y, "K")
+        c.put(27 if y >= 26 else 25, y, "K")
+    c.rect(6, 15, 20, 1, "K")
+    return c.rows()
+
+
+def prop_board():
+    # Доска с графиком и стикерами (без надписей), на ножке
+    c = Canvas(32, 32)
+    c.rect(3, 4, 26, 18, "6")
+    c.rect(2, 3, 28, 1, "K")
+    c.rect(2, 22, 28, 1, "K")
+    c.rect(2, 3, 1, 20, "K")
+    c.rect(29, 3, 1, 20, "K")
+    pts = [(5, 18), (9, 15), (13, 16), (17, 11), (21, 12), (25, 7)]
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        for i in range(x1 - x0 + 1):
+            c.put(x0 + i, y0 + (y1 - y0) * i // max(1, x1 - x0), "B")
+    for x, y, ch in ((5, 6, "Z"), (9, 6, "v"), (5, 9, "T")):
+        c.rect(x, y, 3, 3, ch)
+    c.rect(15, 22, 2, 9, "2")
+    c.rect(10, 31, 12, 1, "K")
+    return c.rows()
+
+
+def prop_coffee_machine():
+    c = Canvas(32, 32)
+    c.rect(4, 24, 24, 8, "w")  # тумба
+    c.rect(4, 24, 24, 1, "W")
+    c.rect(9, 8, 14, 16, "1")
+    c.rect(9, 8, 14, 2, "3")
+    c.rect(11, 12, 10, 3, "t")  # экранчик
+    c.rect(12, 17, 8, 4, "D")
+    c.rect(15, 15, 2, 2, "3")
+    c.rect(13, 19, 6, 2, "6")  # кружка
+    for y in range(8, 24):
+        c.put(8, y, "K")
+        c.put(23, y, "K")
+    c.rect(8, 7, 16, 1, "K")
+    return c.rows()
+
+
+def prop_chair():
+    c = Canvas(32, 32)
+    c.rect(11, 12, 3, 11, "1")  # спинка
+    c.rect(11, 12, 1, 11, "2")
+    c.rect(11, 22, 12, 3, "1")  # сиденье
+    c.rect(11, 22, 12, 1, "2")
+    c.rect(16, 25, 2, 4, "3")
+    c.rect(11, 29, 12, 1, "2")
+    for x in (11, 16, 22):
+        c.put(x, 30, "K")
+        c.put(x, 31, "K")
+    return c.rows()
+
+
+OFFICE_PROPS = [
+    ("plant", prop_plant()),
+    ("cooler", prop_cooler()),
+    ("printer", prop_printer()),
+    ("board", prop_board()),
+    ("coffee_machine", prop_coffee_machine()),
+    ("chair", prop_chair()),
+    ("lamp", prop_lamp()),
+]
+
+write("items/kettle", [
+    "# Чайник — цель пролога («Найти, где чайник»). 16×16, центр.",
+], 16, 16, [("idle", 3, True, [kettle(0), kettle(1)])])
+write("items/cup", ["# Кружка кофе — значок в панели. 8×8."], 8, 8, [("cup", 1, False, [cup()])])
+write("objects/office_door", [
+    "# Дверь из офиса на склад — финиш пролога. 32×48, низ по центру. Закрыта, пока не раздан кофе.",
+], 32, 48, [("closed", 1, False, [office_door(False)]), ("open", 1, False, [office_door(True)])])
+write("objects/props_office", [
+    "# Реквизит офиса — декор без физики. 32×32, низ по центру. Без надписей и чужих марок.",
+], 32, 32, [(name, 1, False, [rows]) for name, rows in OFFICE_PROPS])
+
+
+# ---------- Тайлсет офиса (16×16) — те же имена тайлов, что у склада ----------
+# Пол — ламинат, балка-платформа — офисный стол с ящиком, стойки — ножки стола,
+# блоки — металлические шкафы для документов.
+
+def office_tiles():
+    T = {}
+
+    def tile():
+        return Canvas(16, 16)
+
+    c = tile()
+    c.rect(0, 0, 16, 1, "5")
+    c.rect(0, 1, 16, 2, "X")
+    c.rect(0, 3, 16, 2, "W")
+    c.rect(0, 5, 16, 1, "w")
+    c.rect(0, 6, 16, 10, "2")
+    for x, y in ((3, 8), (11, 10), (6, 13), (14, 7), (1, 12)):
+        c.put(x, y, "1")
+    for x in (5, 13):
+        c.put(x, 1, "W")
+        c.put(x, 2, "W")
+    T["floor_top"] = c.rows()
+    c = tile()
+    c.rect(0, 0, 16, 16, "2")
+    for x, y in ((2, 2), (9, 4), (13, 1), (5, 9), (12, 12), (1, 14), (7, 6)):
+        c.put(x, y, "1")
+    T["floor_fill"] = c.rows()
+
+    def desk(left, right, handle):
+        c = tile()
+        c.rect(0, 0, 16, 1, "6")
+        c.rect(0, 1, 16, 2, "5")
+        c.rect(0, 3, 16, 1, "4")
+        c.rect(0, 4, 16, 1, "K")
+        c.rect(0, 5, 16, 10, "W")
+        c.rect(0, 5, 16, 1, "X")
+        c.rect(0, 14, 16, 1, "w")
+        c.rect(0, 15, 16, 1, "K")
+        if handle:
+            c.rect(6, 9, 4, 1, "K")
+            c.rect(6, 8, 4, 1, "4")
+        if left:
+            c.rect(0, 0, 1, 16, "K")
+        if right:
+            c.rect(15, 0, 1, 16, "K")
+        return c.rows()
+
+    T["shelf_left"] = desk(True, False, False)
+    T["shelf_mid"] = desk(False, False, True)
+    T["shelf_right"] = desk(False, True, False)
+
+    def cabinet(label):
+        c = tile()
+        c.rect(0, 0, 16, 16, "4")
+        c.rect(1, 0, 14, 1, "5")
+        c.rect(1, 1, 2, 13, "5")
+        c.rect(13, 1, 2, 13, "3")
+        c.rect(0, 14, 16, 1, "2")
+        c.rect(0, 15, 16, 1, "K")
+        c.rect(0, 0, 1, 16, "K")
+        c.rect(15, 0, 1, 16, "K")
+        c.rect(5, 3, 6, 3, label)
+        c.rect(5, 3, 6, 1, "K")
+        c.rect(6, 9, 4, 1, "K")
+        c.rect(6, 10, 4, 1, "2")
+        return c.rows()
+
+    T["box_a"] = cabinet("6")
+    T["box_b"] = cabinet("B")
+
+    def leg(right, base):
+        c = tile()
+        x = 12 if right else 2
+        c.rect(x, 0, 2, 16, "3")
+        c.rect(x, 0, 1, 16, "4")
+        c.rect(x - 1, 0, 1, 16, "K")
+        c.rect(x + 2, 0, 1, 16, "K")
+        if base:
+            c.rect(x - 2, 13, 6, 2, "2")
+            c.rect(x - 2, 13, 6, 1, "3")
+            c.rect(x - 2, 15, 6, 1, "K")
+        return c.rows()
+
+    T["upright_l"] = leg(False, False)
+    T["upright_r"] = leg(True, False)
+    T["upright_l_base"] = leg(False, True)
+    T["upright_r_base"] = leg(True, True)
+    return T
+
+
+_office = office_tiles()
+write("tilesets/office", [
+    "# Тайлсет «Офис — Онбординг». Тайл 16×16, имена — как у склада: пол-ламинат, «балка» — стол с ящиком,",
+    "# стойки — ножки стола, блоки — шкафы для документов. Собран в tools/sprites/world_parts.py — правь там.",
+], 16, 16, [(name, 1, False, [rows]) for name, rows in _office.items()])

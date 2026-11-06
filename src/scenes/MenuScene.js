@@ -4,7 +4,8 @@ import { GAME_WIDTH, COLORS, FONT, LIVES } from '../config.js';
 import { touch, isTouchDevice } from '../input/touch.js';
 import { createButton } from '../ui/button.js';
 import { baseKey } from '../gfx/hero.js';
-import { saveHero } from '../state/settings.js';
+import { saveHero, loadProgress } from '../state/settings.js';
+import { LEVELS } from '../data/levels.js';
 
 // Выбор героя (ТЗ, раздел 2): стажёр или стажёрка
 const HERO_CARDS = [
@@ -51,23 +52,28 @@ export default class MenuScene extends Phaser.Scene {
     });
     this.selectHero(this.registry.get('hero') ?? 'male', { silent: true });
 
-    createButton(this, cx, 202, 'Играть', () => this.startGame());
-
-    const hint = isTouchDevice
-      ? 'Выбери героя и нажми «Играть»'
-      : 'Стрелки — выбрать героя, Enter — играть';
-
-    this.add
-      .text(cx, 246, hint, { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.textMuted })
-      .setOrigin(0.5);
+    // Дошёл дальше пролога — можно продолжить с того уровня; «Новая игра» — с пролога
+    const saved = loadProgress();
+    this.continueLevel = saved && saved !== 'prologue' && LEVELS[saved] ? saved : null;
+    if (this.continueLevel) {
+      createButton(this, cx, 198, 'Продолжить', () => this.startGame(this.continueLevel));
+      createButton(this, cx, 242, 'Новая игра', () => this.startGame('prologue'));
+    } else {
+      createButton(this, cx, 202, 'Играть', () => this.startGame('prologue'));
+      const hint = isTouchDevice ? 'Выбери героя и нажми «Играть»' : 'Стрелки — выбрать героя, Enter — играть';
+      this.add
+        .text(cx, 246, hint, { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.textMuted })
+        .setOrigin(0.5);
+    }
 
     const kb = this.input.keyboard;
     kb.on('keydown-LEFT', () => this.selectHero('male'));
     kb.on('keydown-A', () => this.selectHero('male'));
     kb.on('keydown-RIGHT', () => this.selectHero('female'));
     kb.on('keydown-D', () => this.selectHero('female'));
-    kb.once('keydown-ENTER', () => this.startGame());
-    kb.once('keydown-SPACE', () => this.startGame());
+    const start = () => this.startGame(this.continueLevel ?? 'prologue');
+    kb.once('keydown-ENTER', start);
+    kb.once('keydown-SPACE', start);
   }
 
   selectHero(hero, { silent = false } = {}) {
@@ -86,14 +92,14 @@ export default class MenuScene extends Phaser.Scene {
     }
   }
 
-  startGame() {
+  startGame(level) {
     if (this.starting) return;
     this.starting = true;
-    // Новая игра: жизни и счёт болтов к следующей жизни — с начала
+    // Жизни и счёт болтов к следующей жизни — с начала. Шайба постоянная после пролога (ТЗ)
     this.registry.set('lives', LIVES.start);
     this.registry.set('boltBank', 0);
-    this.registry.set('washer', false);
+    this.registry.set('washer', level !== 'prologue');
     this.registry.remove('stats');
-    this.scene.start('Level', { level: 'warehouse' });
+    this.scene.start('Level', { level });
   }
 }

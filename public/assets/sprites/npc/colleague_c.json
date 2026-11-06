@@ -1,0 +1,23 @@
+{
+  "frameWidth": 24,
+  "frameHeight": 32,
+  "origin": "низ по центру",
+  "animations": {
+    "idle": {
+      "frames": [
+        0,
+        1
+      ],
+      "fps": 2,
+      "loop": true
+    },
+    "talk": {
+      "frames": [
+        2,
+        3
+      ],
+      "fps": 6,
+      "loop": true
+    }
+  }
+}

@@ -1,0 +1,13 @@
+# Кружка кофе — значок в панели. 8×8.
+size 8x8
+
+anim cup 1 once
+frame
+..4.5...
+.KKKKK..
+KwwwwwK.
+K66665K.
+K66665.K
+K66665.K
+K66665K.
+KKKKKKK.

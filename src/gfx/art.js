@@ -23,12 +23,23 @@ const SHEETS = [
   { key: 'props', path: 'sprites/objects/props', size: 32 },
   { key: 'mimic', path: 'sprites/bosses/mimic', width: 64, height: 56 },
   { key: 'fasteners', path: 'sprites/bosses/fasteners', size: 8 },
+  { key: 'tiles_office', path: 'sprites/tilesets/office', size: 16 },
+  { key: 'monday', path: 'sprites/enemies/monday', size: 24 },
+  { key: 'monday_defeat', path: 'sprites/enemies/monday_defeat', size: 24 },
+  { key: 'kettle', path: 'sprites/items/kettle', size: 16 },
+  { key: 'cup', path: 'sprites/items/cup', size: 8 },
+  { key: 'office_door', path: 'sprites/objects/office_door', width: 32, height: 48 },
+  { key: 'props_office', path: 'sprites/objects/props_office', size: 32 },
+  { key: 'ded', path: 'sprites/npc/ded', width: 24, height: 32 },
+  { key: 'colleague_a', path: 'sprites/npc/colleague_a', width: 24, height: 32 },
+  { key: 'colleague_b', path: 'sprites/npc/colleague_b', width: 24, height: 32 },
+  { key: 'colleague_c', path: 'sprites/npc/colleague_c', width: 24, height: 32 },
 ];
 
 // Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»
-const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle', 'peresort_defeat', 'rust', 'dust', 'rohlya', 'mimic'];
+const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle', 'peresort_defeat', 'rust', 'dust', 'rohlya', 'mimic', 'monday', 'monday_defeat', 'kettle', 'ded', 'colleague_a', 'colleague_b', 'colleague_c'];
 
-const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks'];
+const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks', 'office_wall', 'office_desks'];
 
 export function preloadArt(scene) {
   for (const s of SHEETS) {

@@ -19,10 +19,10 @@ export function addUprights(scene, x, y, w, groundTop) {
 }
 
 // Реквизит на полу: [x в тайлах, имя кадра из листа props]. Чуть темнее игрового плана — он позади.
-export function addProps(scene, list, groundTop) {
+export function addProps(scene, list, groundTop, sheet = 'props') {
   for (const [tx, name, flip] of list) {
     scene.add
-      .image(tx * TILE + TILE / 2, groundTop, 'props', frameOf(scene, 'props', name))
+      .image(tx * TILE + TILE / 2, groundTop, sheet, frameOf(scene, sheet, name))
       .setOrigin(0.5, 1)
       .setFlipX(!!flip)
       .setTint(0xd0d4dc)

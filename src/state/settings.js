@@ -54,3 +54,15 @@ export function saveCard(id) {
   cards.add(id);
   write('cards', [...cards]);
 }
+
+// Прогресс (ТЗ, раздел 3: «прогресс по мирам хранится в браузере»): самый дальний уровень, до которого дошёл
+export function loadProgress() {
+  const v = read('progress', null);
+  return typeof v === 'string' ? v : null;
+}
+
+export function saveProgress(level, order) {
+  const current = loadProgress();
+  if (current && order.indexOf(current) >= order.indexOf(level)) return;
+  write('progress', level);
+}

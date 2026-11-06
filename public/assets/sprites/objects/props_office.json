@@ -1,0 +1,56 @@
+{
+  "frameWidth": 32,
+  "frameHeight": 32,
+  "origin": "низ по центру",
+  "animations": {
+    "plant": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "cooler": {
+      "frames": [
+        1
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "printer": {
+      "frames": [
+        2
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "board": {
+      "frames": [
+        3
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "coffee_machine": {
+      "frames": [
+        4
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "chair": {
+      "frames": [
+        5
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "lamp": {
+      "frames": [
+        6
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}

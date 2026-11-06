@@ -11,6 +11,7 @@ import Tape from '../objects/Tape.js';
 import Paint from '../objects/Paint.js';
 import Rohlya from '../objects/Rohlya.js';
 import BossMimic, { MIMIC } from '../objects/BossMimic.js';
+import Npc from '../objects/Npc.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
@@ -18,7 +19,7 @@ import LivesCounter from '../ui/LivesCounter.js';
 import CardCounter from '../ui/CardCounter.js';
 import { CARDS } from '../data/cards.js';
 import { LEVELS, GROUND_TOP } from '../data/levels.js';
-import { loadCards, saveCard } from '../state/settings.js';
+import { loadCards, saveCard, saveProgress } from '../state/settings.js';
 import { showToast, hideToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
 import { frameOf } from '../gfx/art.js';
@@ -35,6 +36,7 @@ export default class LevelScene extends Phaser.Scene {
   init(data) {
     this.levelKey = data?.level ?? this.registry.get('level') ?? 'warehouse';
     this.registry.set('level', this.levelKey);
+    saveProgress(this.levelKey, Object.keys(LEVELS));
   }
 
   create() {
@@ -71,7 +73,7 @@ export default class LevelScene extends Phaser.Scene {
         .setDepth(-10)
         .setTint(tint),
     }));
-    addProps(this, L.props, GROUND_TOP);
+    addProps(this, L.props, GROUND_TOP, L.propsSheet);
     addLamps(this, L.lamps, GROUND_TOP);
     addMotes(this);
     // На арене в один экран передний план не проплывает, а стоит и закрывает бой — там его нет
@@ -84,9 +86,12 @@ export default class LevelScene extends Phaser.Scene {
     // Финиш — ворота отгрузки: герой забегает в проём, к фуре. Надпись — текстом игры, не в картинке
     this.finishX = L.finishTx * TILE;
     const gateX = this.finishX + 12;
-    this.add.image(gateX, GROUND_TOP, 'loading_gate').setOrigin(0.5, 1);
+    // Финиш пролога — дверь на склад; на складе — ворота отгрузки
+    const door = L.gate === 'office_door';
+    this.gate = this.add.image(gateX, GROUND_TOP, door ? 'office_door' : 'loading_gate').setOrigin(0.5, 1);
+    if (door) this.gate.setFrame(frameOf(this, 'office_door', 'closed'));
     this.add
-      .text(gateX, GROUND_TOP - 68, 'ОТГРУЗКА', {
+      .text(gateX, GROUND_TOP - (door ? 52 : 68), door ? 'СКЛАД' : 'ОТГРУЗКА', {
         fontFamily: FONT.family,
         fontSize: FONT.body,
         color: COLORS.text,
@@ -115,7 +120,7 @@ export default class LevelScene extends Phaser.Scene {
 
     this.physics.add.collider(this.player, this.platforms);
 
-    this.enemies = L.enemies.map(([from, to, row]) => new Enemy(this, from * TILE, to * TILE, row * TILE));
+    this.enemies = L.enemies.map(([from, to, row, kind]) => new Enemy(this, from * TILE, to * TILE, row * TILE, kind));
     this.physics.add.overlap(
       this.player,
       this.enemies.map((e) => e.sprite),
@@ -213,11 +218,13 @@ export default class LevelScene extends Phaser.Scene {
     this.cardCounter.set(0);
     this.cardCounter.setVisible(this.cards.length > 0);
     this.buffBar = new BuffBar(this, 6, 21);
-    showToast(this, L.title, { hold: 2200 });
+    const pick = (t) => (typeof t === 'string' ? t : isTouchDevice ? t.touch : t.keys);
+    showToast(this, pick(L.title), { hold: L.npcs ? 4000 : 2200 });
     this.hints = L.hints.map(([tx, text]) => ({
       x: tx * TILE,
-      text: typeof text === 'string' ? text : isTouchDevice ? text.touch : text.keys,
+      text: pick(text),
     }));
+    this.createQuest(L, gateX);
 
     this.controls = new Controls(this);
     touch.setVisible(true);
@@ -557,6 +564,11 @@ export default class LevelScene extends Phaser.Scene {
     this.registry.set('washer', true);
     this.washer.attach();
     audio.play('pickup');
+    // В прологе знакомство с Шайбой — разговором
+    if (this.level.washerDialog) {
+      this.openDialog(this.level.washerDialog);
+      return;
+    }
     showToast(this, 'Шайба Гроверная теперь с тобой!\nВ воздухе прыгни ещё раз — двойной прыжок', { hold: 2500 });
   }
 
@@ -568,6 +580,7 @@ export default class LevelScene extends Phaser.Scene {
 
   onResume(sys, data) {
     this.controls.reset();
+    if (data?.dialogDone) this.onDialogDone(data.dialogDone);
     // Вернулись с экрана смерти — появимся в первом кадре после паузы,
     // когда часы сцены снова идут (иначе неуязвимость посчиталась бы от старого времени)
     if (data?.respawn) this.pendingRespawn = true;
@@ -603,6 +616,7 @@ export default class LevelScene extends Phaser.Scene {
       if (r.update(delta)) this.onRohlyaStop(r);
     });
     if (this.boss) this.updateBoss(delta);
+    this.updateQuest(delta);
     this.washer.update(this.player, this.facing, delta);
     this.tickBuffs(delta);
     if (this.finished || this.dead) return;
@@ -671,7 +685,7 @@ export default class LevelScene extends Phaser.Scene {
       showToast(this, this.hints.shift().text, { hold: 2600 });
     }
 
-    if (this.player.x >= this.finishX) this.finish();
+    if (this.player.x >= this.finishX && !this.exitLock) this.finish();
   }
 
   hurtPlayer(enemy) {
@@ -799,7 +813,9 @@ export default class LevelScene extends Phaser.Scene {
       lines = [
         `Болты: ${stats.bolts} из ${stats.boltTotal}`,
         `Карточки стандартов: ${stats.cards} из ${stats.cardsTotal}`,
-        `Пересортиков разобрано: ${stats.enemies} из ${stats.enemiesTotal}`,
+        `${this.level.enemyLabel ?? 'Пересортиков разобрано'}: ${stats.enemies} из ${stats.enemiesTotal}`,
+        ...(this.coffeeNpcs.length ? [`Кофе вовремя: ${this.coffeeOnTime} из ${this.coffeeNpcs.length}`] : []),
+        ...(this.level.achievement ? ['', this.level.achievement[this.hero]] : []),
         '',
         this.level.nextHint,
       ];
@@ -844,6 +860,130 @@ export default class LevelScene extends Phaser.Scene {
       .setOrigin(0.5, 0)
       .setScrollFactor(0)
       .setDepth(100);
+  }
+
+  // ---------- Пролог: NPC, диалоги, чайник и кофе ----------
+
+  createQuest(L, gateX) {
+    this.npcs = (L.npcs ?? []).map((def) => {
+      const npc = new Npc(this, def.tx * TILE, GROUND_TOP, def.key);
+      npc.def = def;
+      if (def.dialog) npc.setMark(true);
+      this.physics.add.overlap(this.player, npc.zone, () => this.touchNpc(npc));
+      return npc;
+    });
+    this.coffeeNpcs = this.npcs.filter((n) => n.def.coffee);
+    this.cups = 0;
+    this.coffeeOnTime = 0;
+    this.talked = new Set();
+
+    // Чайник на верхнем шкафу кухни
+    this.kettle = null;
+    if (L.kettle) {
+      const k = this.add.sprite(L.kettle.tx * TILE + TILE / 2, L.kettle.row * TILE - 8, 'kettle').play('kettle:idle');
+      this.physics.add.existing(k, true);
+      this.physics.add.overlap(this.player, k, () => this.pickKettle());
+      this.kettle = k;
+    }
+
+    // Пока коллеги без кофе — дверь заперта: невидимая стенка перед ней
+    this.exitLock = null;
+    if (this.coffeeNpcs.length) {
+      this.exitLock = this.add.rectangle(gateX - 20, GROUND_TOP - 48, 8, 48).setOrigin(0).setVisible(false);
+      this.physics.add.existing(this.exitLock, true);
+      this.platforms.push(this.exitLock);
+    }
+
+    // Кружки в руках — значок в правом конце панели
+    this.cupIcon = this.add.image(184, 6, 'cup').setOrigin(0).setScrollFactor(0).setDepth(100).setVisible(false);
+    this.cupText = this.add
+      .text(194, 6, '', { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.text, backgroundColor: '#16181c' })
+      .setScrollFactor(0)
+      .setDepth(100)
+      .setVisible(false);
+  }
+
+  updateQuest(delta) {
+    for (const npc of this.npcs) {
+      npc.lookAt(this.player.x);
+      const event = npc.updateBurnout(delta);
+      if (event === 'warn') showToast(this, 'Коллега выгорает — скорее неси кофе!');
+      if (event === 'burnt') showToast(this, 'Выгорание! Кофе коллеге всё равно нужен');
+    }
+  }
+
+  touchNpc(npc) {
+    if (this.dead || this.finished) return;
+    const def = npc.def;
+    if (def.dialog && !this.talked.has(def.dialog)) {
+      this.talked.add(def.dialog);
+      npc.setMark(false);
+      this.openDialog(def.dialog);
+      return;
+    }
+    if (def.coffee && this.cups > 0 && npc.burn && !npc.burn.served) {
+      this.cups -= 1;
+      if (npc.serve()) this.coffeeOnTime += 1;
+      audio.play('pickup');
+      playFx(this, npc.sprite.x, npc.sprite.y - 36, 'puff', 'pick');
+      this.updateCups();
+      const thanks = typeof def.thanks === 'string' ? def.thanks : def.thanks[this.hero];
+      if (this.coffeeNpcs.every((n) => n.burn?.served)) {
+        showToast(this, `${thanks}\nВсе с кофе — дверь на склад открыта!`, { hold: 3000 });
+        this.unlockExit();
+      } else {
+        showToast(this, thanks, { hold: 2400 });
+      }
+    }
+  }
+
+  pickKettle() {
+    if (!this.kettle || this.dead) return;
+    const k = this.kettle;
+    this.kettle = null;
+    this.physics.world.disable(k);
+    playFx(this, k.x, k.y, 'puff', 'pick');
+    k.destroy();
+    audio.play('card');
+    this.cups = this.coffeeNpcs.length;
+    this.updateCups();
+    this.coffeeNpcs.forEach((n) => n.startBurnout(n.def.coffee));
+    showToast(this, 'Чайник нашёлся! Кофе готов.\nНеси коллегам, пока не загорелось Выгорание', { hold: 3500 });
+  }
+
+  updateCups() {
+    const on = this.cups > 0;
+    this.cupIcon.setVisible(on);
+    this.cupText.setVisible(on).setText(`×${this.cups}`);
+  }
+
+  unlockExit() {
+    if (!this.exitLock) return;
+    this.platforms.splice(this.platforms.indexOf(this.exitLock), 1);
+    this.exitLock.destroy();
+    this.exitLock = null;
+    this.gate.setFrame(frameOf(this, 'office_door', 'open'));
+    audio.play('checkpoint');
+  }
+
+  openDialog(id) {
+    hideToast(this);
+    touch.setVisible(false);
+    this.controls.reset();
+    this.player.body.setVelocityX(0);
+    this.scene.pause();
+    this.scene.launch('Dialog', {
+      from: this.scene.key,
+      id,
+      lines: this.level.dialogs[id].lines,
+      hero: this.hero,
+      heroTex: this.heroTex,
+    });
+  }
+
+  onDialogDone(id) {
+    const after = this.level.dialogs[id]?.after;
+    if (after) showToast(this, after, { hold: 3500 });
   }
 
   // ---------- Босс ----------

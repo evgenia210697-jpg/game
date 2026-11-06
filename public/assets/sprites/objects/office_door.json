@@ -1,0 +1,21 @@
+{
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "origin": "низ по центру",
+  "animations": {
+    "closed": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "open": {
+      "frames": [
+        1
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}
