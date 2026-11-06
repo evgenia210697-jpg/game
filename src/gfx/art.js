@@ -8,10 +8,12 @@ const SHEETS = [
   { key: 'hud', path: 'sprites/ui/hud', width: 10, height: 7 },
   { key: 'peresort', path: 'sprites/enemies/peresort', size: 24 },
   { key: 'turnstile', path: 'sprites/objects/turnstile', size: 32 },
+  { key: 'bonuses', path: 'sprites/items/bonuses', size: 16 },
+  { key: 'washer', path: 'sprites/companion/washer', size: 12 },
 ];
 
 // Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»
-const ANIMATED = ['bolt', 'peresort'];
+const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer'];
 
 const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks'];
 

@@ -183,3 +183,135 @@ write("objects/turnstile", [
     ("closed", 1, False, [turnstile(False)]),
     ("open", 1, False, [turnstile(True)]),
 ])
+
+
+# ---------- Бонусы на уровне (16×16) ----------
+
+def helmet_item():
+    # Каска-бонус: жёлтая (синяя — у героя), вид сбоку: купол с рёбрами и козырёк вперёд
+    return [
+        "................",
+        "................",
+        "................",
+        "......KKKKK.....",
+        "....KKZZYYYKK...",
+        "...KZZYZYYYYyK..",
+        "..KZZYYZYYYYYyK.",
+        "..KZYYYZYYYYYyK.",
+        "..KZYYYZYYYYyyK.",
+        "..KYYYYZYYYYyyK.",
+        ".KKKKKKKKKKKKKKK",
+        ".KZZZZZZZZZZZZyK",
+        "..KyyyyyyyyyyyK.",
+        "...KKKKKKKKKKK..",
+        "................",
+        "................",
+    ]
+
+
+def coffee_item(steam):
+    # Кофе: белая кружка с ручкой, сверху — кофе, над ним пар (два кадра)
+    c = Canvas(16, 16)
+    puffs = [(6, 1), (8, 2), (6, 3)] if steam == 0 else [(7, 1), (6, 2), (8, 3)]
+    for x, y in puffs:
+        c.put(x, y, "5")
+    c.stamp(["KKKKKKKKK"], 3, 4)
+    c.stamp(["K5wsssswK"], 3, 5)
+    for y in range(6, 12):
+        c.stamp(["K6555543K"], 3, y)
+    c.stamp(["K5444433K"], 3, 12)
+    c.stamp([".KKKKKKK."], 3, 13)
+    c.stamp(["KKKK", "K.5K", "K.5K", "K.5K", "KK5K", "KKKK"], 11, 6)
+    return c.rows()
+
+
+def tape_item():
+    # Изолента: моток, вид сверху в три четверти, свободный конец ленты свисает справа
+    c = Canvas(16, 16)
+    side = c.ellipse(8, 9.5, 6.5, 4, "GGgg")
+    top = c.ellipse(8, 7.5, 6.5, 4, "VvvG")
+    hole = set()
+    for y in range(16):
+        for x in range(16):
+            dx, dy = (x + 0.5 - 8) / 2.6, (y + 0.5 - 7.5) / 1.6
+            if dx * dx + dy * dy <= 1:
+                hole.add((x, y))
+                c.px[y][x] = "D" if y < 8 else "d"
+    c.outline(side | top)
+    for x, y in hole:  # контур дырки
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if (nx, ny) not in hole and c.px[ny][nx] in "VvG":
+                c.px[ny][nx] = "K"
+    for x, y in ((13, 11), (13, 12), (14, 13), (14, 14)):  # хвостик ленты
+        c.put(x, y, "v")
+        c.put(x + 1, y, "K")
+    c.put(13, 15, "K")
+    c.put(14, 15, "K")
+    return c.rows()
+
+
+def paint_item():
+    # Порошковая покраска: банка с крышкой, по бокам — потёки краски разных цветов
+    c = Canvas(16, 16)
+    for y in range(5, 14):
+        c.stamp(["K65544433K"], 3, y)
+    c.stamp(["KKKKKKKKKK"], 3, 14)
+    c.stamp([".KKKKKKKK.", "K66555544K", "K55444433K", ".KKKKKKKK."], 3, 2)
+    drips = {4: ("Y", 7), 5: ("Y", 9), 7: ("x", 11), 8: ("x", 8), 10: ("t", 10), 11: ("t", 7)}
+    for x, (ch, bottom) in drips.items():
+        for y in range(5, bottom):
+            c.put(x, y, ch)
+    return c.rows()
+
+
+write("items/bonuses", [
+    "# Бонусы на уровне: Каска, Кофе (пар — два кадра), Изолента, Порошковая покраска. Кадр 16×16, центр.",
+    "# Собраны в tools/sprites/world_parts.py — правь там.",
+], 16, 16, [
+    ("helmet", 1, False, [helmet_item()]),
+    ("coffee", 3, True, [coffee_item(0), coffee_item(1)]),
+    ("tape", 1, False, [tape_item()]),
+    ("paint", 1, False, [paint_item()]),
+])
+
+
+# ---------- Шайба Гроверная (12×12) ----------
+# Разрезная пружинная шайба (DIN 127): кольцо в три четверти, концы разреза разведены по высоте.
+# Сверху сталь, внутри — синяя («своя», как герой). Глаза — чтобы было видно, что она живая.
+
+WASHER = [
+    "............",
+    "............",
+    "...KKKKKK...",
+    ".KK655555KK.",
+    "K655KKKK443K",
+    "K65KDDDDKK3K",
+    "K54KnnnnKK2K",
+    "K443KKKK3K2K",
+    ".KK4K33K2KK.",
+    "...KKKKKK...",
+    "............",
+    "............",
+]
+# Стальное кольцо: блик сверху-слева, дырка с синей внутренней стенкой (снизу), тёмная прорезь
+# разреза справа — как у настоящей пружинной шайбы. Глаза — на передней кромке.
+
+
+def washer(sparks=0):
+    c = Canvas(12, 12)
+    c.stamp(WASHER, 0, 0)
+    # Искры над шайбой: заряд двойного прыжка
+    spark_sets = [[], [(3, 1), (8, 0)], [(2, 1), (5, 0), (8, 1), (10, 2)]]
+    for x, y in spark_sets[sparks]:
+        c.put(x, y, "L")
+    return c.rows()
+
+
+write("companion/washer", [
+    "# Шайба Гроверная — компаньон, даёт двойной прыжок. Кадр 12×12, центр.",
+    "# idle — покачивается с редкими искрами; react — вспышка искр при двойном прыжке.",
+    "# Собрана в tools/sprites/world_parts.py — правь там.",
+], 12, 12, [
+    ("idle", 4, True, [washer(0), washer(0), washer(1), washer(0)]),
+    ("react", 12, False, [washer(2), washer(1), washer(0)]),
+])

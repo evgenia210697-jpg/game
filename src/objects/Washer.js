@@ -1,14 +1,12 @@
-import { COLORS } from '../config.js';
-
 // Шайба Гроверная — компаньон. Сначала лежит на уровне и покачивается.
 // Подобрал — летит за героем и даёт двойной прыжок.
-// Пока это кольцо; спрайт шайбы рисует Евгения на этапе графики.
+// Стальная разрезная шайба 12×12 (DIN 127), над ней изредка проскакивают искры.
 export default class Washer {
   constructor(scene, x, y) {
     this.scene = scene;
     this.following = false;
 
-    this.sprite = scene.add.circle(x, y, 5).setStrokeStyle(2, COLORS.washer).setDepth(10);
+    this.sprite = scene.add.sprite(x, y, 'washer').play('washer:idle').setDepth(10);
     scene.physics.add.existing(this.sprite, true);
 
     // Покачивается на месте — видно, что это можно взять
@@ -40,6 +38,7 @@ export default class Washer {
 
   // Короткая вспышка при двойном прыжке: понятно, кто помог
   pulse() {
+    this.sprite.play('washer:react').chain('washer:idle');
     this.sprite.setScale(1.8);
     this.scene.tweens.add({ targets: this.sprite, scale: 1, duration: 200 });
   }
