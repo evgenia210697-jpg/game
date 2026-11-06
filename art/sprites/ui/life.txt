@@ -1,0 +1,25 @@
+# Значок жизни в панели: голова стажёра (male) и стажёрки (female) в каске. 8×8.
+# Собран в tools/sprites/world_parts.py — правь там.
+size 8x8
+
+anim male 1 once
+frame
+..KKKK..
+.KbLBBK.
+KbBBBBnK
+KNNNNNNK
+.KwFKFK.
+.KwFFFK.
+..KHHK..
+...KK...
+
+anim female 1 once
+frame
+..KKKK..
+.KbLBBK.
+KbBBBBnK
+KNNNNNNK
+OKsFKFK.
+OKsFFFK.
+.KKHHK..
+...KK...

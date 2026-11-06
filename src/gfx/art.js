@@ -14,6 +14,7 @@ const SHEETS = [
   { key: 'spark', path: 'sprites/effects/spark', size: 12 },
   { key: 'puff', path: 'sprites/effects/puff', size: 16 },
   { key: 'twinkle', path: 'sprites/effects/twinkle', size: 8 },
+  { key: 'life', path: 'sprites/ui/life', size: 8 },
 ];
 
 // Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»

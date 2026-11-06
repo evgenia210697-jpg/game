@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER, BONUS, PAINT_COLORS } from '../config.js';
+import { GAME_WIDTH, GAME_HEIGHT, TILE, COLORS, FONT, PLAYER, BONUS, PAINT_COLORS, LIVES } from '../config.js';
 import Controls from '../input/Controls.js';
 import { touch } from '../input/touch.js';
 import Enemy from '../objects/Enemy.js';
@@ -12,6 +12,7 @@ import Paint from '../objects/Paint.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
+import LivesCounter from '../ui/LivesCounter.js';
 import { showToast, hideToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
 import { frameOf } from '../gfx/art.js';
@@ -126,6 +127,9 @@ export default class LevelScene extends Phaser.Scene {
     this.invulnerableUntil = -Infinity;
     this.controlLockedUntil = -Infinity;
     this.boltCount = 0;
+    // Жизни — на всю игру; уровень, запущенный не из меню (например, в тестах), начинает с трёх
+    if (this.registry.get('lives') === undefined) this.registry.set('lives', LIVES.start);
+    if (this.registry.get('boltBank') === undefined) this.registry.set('boltBank', 0);
     this.hasWasher = false;
     this.hasHelmet = false;
     // Действующие бонусы с таймером: имя → { remaining, duration, color }, время в мс
@@ -218,9 +222,11 @@ export default class LevelScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
 
     // Панель под здоровьем и болтами — чтобы читались на любом фоне
-    this.add.rectangle(2, 2, 96, 15, COLORS.bg, 0.85).setOrigin(0).setStrokeStyle(1, COLORS.ground).setScrollFactor(0).setDepth(99);
+    this.add.rectangle(2, 2, 136, 15, COLORS.bg, 0.85).setOrigin(0).setStrokeStyle(1, COLORS.ground).setScrollFactor(0).setDepth(99);
     this.healthBar = new HealthBar(this, 6, 6, PLAYER.maxHealth);
     this.boltCounter = new BoltCounter(this, 58, 6);
+    this.livesCounter = new LivesCounter(this, 100, 6, this.hero);
+    this.livesCounter.set(this.registry.get('lives'));
     this.buffBar = new BuffBar(this, 6, 21);
     showToast(this, 'Склад — проверка стиля');
 
@@ -290,6 +296,15 @@ export default class LevelScene extends Phaser.Scene {
     this.boltCount += 1;
     this.boltCounter.set(this.boltCount);
     playFx(this, bolt.x, bolt.y, 'twinkle', 'bolt');
+
+    // Каждые 100 болтов за игру — +1 жизнь
+    const bank = this.registry.get('boltBank') + 1;
+    this.registry.set('boltBank', bank);
+    if (bank % LIVES.boltsPerLife === 0) {
+      this.registry.set('lives', this.registry.get('lives') + 1);
+      this.livesCounter.set(this.registry.get('lives'));
+      showToast(this, `${bank}-й болт! +1 жизнь`, { hold: 1600 });
+    }
 
     // Болт взлетает и тает
     this.tweens.add({
@@ -444,7 +459,11 @@ export default class LevelScene extends Phaser.Scene {
   showDeathScreen() {
     hideToast(this);
     this.scene.pause();
-    this.scene.launch('Death', { from: this.scene.key, fromCheckpoint: this.checkpoint.active });
+    this.scene.launch('Death', {
+      from: this.scene.key,
+      fromCheckpoint: this.checkpoint.active,
+      lives: this.registry.get('lives'),
+    });
   }
 
   openPause() {
@@ -546,6 +565,9 @@ export default class LevelScene extends Phaser.Scene {
       this.playHeroAnim('hurt');
       // Бонусы с таймером сгорают вместе с «перерывом»
       this.buffs.clear();
+      // Смерть забирает жизнь
+      this.registry.set('lives', Math.max(0, this.registry.get('lives') - 1));
+      this.livesCounter.set(this.registry.get('lives'));
       touch.setVisible(false);
       this.time.delayedCall(700, () => this.showDeathScreen());
       return;

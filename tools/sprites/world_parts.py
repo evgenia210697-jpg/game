@@ -437,3 +437,36 @@ write("effects/puff", ["# «Пуф» при подборе бонуса. 16×16,
 write("effects/twinkle", ["# Блеск при сборе болта. 8×8, центр."], 8, 8, [
     ("bolt", 16, False, [twinkle(1), twinkle(3), twinkle(2), twinkle(1)]),
 ])
+
+
+# ---------- Значок жизни (8×8): голова стажёра в каске ----------
+# Отдельно для героя и героини (у неё рыжий хвост) — в панели показываем того, кого выбрали.
+
+LIFE_MALE = [
+    "..KKKK..",
+    ".KbLBBK.",
+    "KbBBBBnK",
+    "KNNNNNNK",
+    ".KwFKFK.",
+    ".KwFFFK.",
+    "..KHHK..",
+    "...KK...",
+]
+LIFE_FEMALE = [
+    "..KKKK..",
+    ".KbLBBK.",
+    "KbBBBBnK",
+    "KNNNNNNK",
+    "OKsFKFK.",
+    "OKsFFFK.",
+    ".KKHHK..",
+    "...KK...",
+]
+
+write("ui/life", [
+    "# Значок жизни в панели: голова стажёра (male) и стажёрки (female) в каске. 8×8.",
+    "# Собран в tools/sprites/world_parts.py — правь там.",
+], 8, 8, [
+    ("male", 1, False, [LIFE_MALE]),
+    ("female", 1, False, [LIFE_FEMALE]),
+])

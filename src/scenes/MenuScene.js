@@ -1,5 +1,5 @@
 import * as Phaser from 'phaser';
-import { GAME_WIDTH, COLORS, FONT } from '../config.js';
+import { GAME_WIDTH, COLORS, FONT, LIVES } from '../config.js';
 import { touch, isTouchDevice } from '../input/touch.js';
 import { createButton } from '../ui/button.js';
 import { baseKey } from '../gfx/hero.js';
@@ -84,6 +84,9 @@ export default class MenuScene extends Phaser.Scene {
   startGame() {
     if (this.starting) return;
     this.starting = true;
+    // Новая игра: жизни и счёт болтов к следующей жизни — с начала
+    this.registry.set('lives', LIVES.start);
+    this.registry.set('boltBank', 0);
     this.scene.start('Level');
   }
 }
