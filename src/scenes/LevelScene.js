@@ -12,7 +12,7 @@ import Paint from '../objects/Paint.js';
 import HealthBar from '../ui/HealthBar.js';
 import BoltCounter from '../ui/BoltCounter.js';
 import BuffBar from '../ui/BuffBar.js';
-import { showToast } from '../ui/toast.js';
+import { showToast, hideToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
 import { frameOf } from '../gfx/art.js';
 import { playFx } from '../gfx/fx.js';
@@ -149,7 +149,7 @@ export default class LevelScene extends Phaser.Scene {
     this.add
       .text(gateX, GROUND_TOP - 68, 'ОТГРУЗКА', {
         fontFamily: FONT.family,
-        fontSize: '9px',
+        fontSize: FONT.body,
         color: COLORS.text,
         backgroundColor: '#16181c',
         padding: { x: 3, y: 1 },
@@ -442,6 +442,7 @@ export default class LevelScene extends Phaser.Scene {
   }
 
   showDeathScreen() {
+    hideToast(this);
     this.scene.pause();
     this.scene.launch('Death', { from: this.scene.key, fromCheckpoint: this.checkpoint.active });
   }
@@ -449,6 +450,7 @@ export default class LevelScene extends Phaser.Scene {
   openPause() {
     if (!this.scene.isActive() || this.finished || this.dead) return;
     touch.setVisible(false);
+    hideToast(this);
     this.scene.pause();
     this.scene.launch('Pause', { from: this.scene.key });
   }
@@ -616,7 +618,7 @@ export default class LevelScene extends Phaser.Scene {
     this.add
       .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'Заказ отгружен!', {
         fontFamily: FONT.family,
-        fontSize: '16px',
+        fontSize: FONT.heading,
         color: COLORS.text,
         backgroundColor: '#16181c',
         padding: { x: 8, y: 4 },

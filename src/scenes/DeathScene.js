@@ -19,14 +19,14 @@ export default class DeathScene extends Phaser.Scene {
     this.leaving = false;
     const cx = GAME_WIDTH / 2;
 
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.bg, 0.85).setOrigin(0);
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.bg, 0.92).setOrigin(0);
 
     const female = this.registry.get('hero') === 'female';
     this.add
-      .text(cx, 54, female ? 'Ушла на перерыв.' : 'Ушёл на перерыв.', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
+      .text(cx, 54, female ? 'Ушла на перерыв.' : 'Ушёл на перерыв.', { fontFamily: FONT.family, fontSize: FONT.heading, color: COLORS.text })
       .setOrigin(0.5);
     this.add
-      .text(cx, 80, 'Вернёшься?', { fontFamily: FONT.family, fontSize: '14px', color: COLORS.textMuted })
+      .text(cx, 80, 'Вернёшься?', { fontFamily: FONT.family, fontSize: FONT.heading, color: COLORS.textMuted })
       .setOrigin(0.5);
 
     createButton(this, cx, 126, 'Вернуться', () => this.comeBack());
@@ -34,7 +34,7 @@ export default class DeathScene extends Phaser.Scene {
 
     const where = this.fromCheckpoint ? 'Продолжишь с проходной' : 'Продолжишь с начала уровня';
     this.add
-      .text(cx, 210, where, { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
+      .text(cx, 210, where, { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.textMuted })
       .setOrigin(0.5);
 
     // Повторы от зажатой клавиши пропускаем: держал прыжок в момент смерти — экран не должен сразу закрыться

@@ -14,10 +14,13 @@ export function showToast(scene, message, { hold = 900 } = {}) {
   const label = scene.add
     .text(GAME_WIDTH / 2, 36, message, {
       fontFamily: FONT.family,
-      fontSize: '10px',
+      fontSize: FONT.body,
       color: COLORS.text,
       align: 'center',
-      lineSpacing: 4,
+      lineSpacing: FONT.lineSpacing,
+      // Тёмная плашка — мелкий текст читается на любом фоне уровня
+      backgroundColor: 'rgba(22, 24, 28, 0.88)',
+      padding: { x: 6, y: 4 },
     })
     .setOrigin(0.5)
     .setScrollFactor(0)
@@ -33,4 +36,13 @@ export function showToast(scene, message, { hold = 900 } = {}) {
   });
   current.set(scene, label);
   return label;
+}
+
+// Убрать текущее сообщение сразу — перед паузой и экраном смерти, чтобы не просвечивало
+export function hideToast(scene) {
+  const prev = current.get(scene);
+  if (prev?.active) {
+    scene.tweens.killTweensOf(prev);
+    prev.destroy();
+  }
 }

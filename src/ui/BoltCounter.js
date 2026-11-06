@@ -5,7 +5,7 @@ export default class BoltCounter {
   constructor(scene, x, y) {
     this.icon = scene.add.image(x, y, 'bolt', 0).setOrigin(0).setScrollFactor(0).setDepth(100);
     this.text = scene.add
-      .text(x + 11, y - 3, '0', { fontFamily: FONT.family, fontSize: '10px', color: COLORS.text })
+      .text(x + 11, y, '0', { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.text })
       .setScrollFactor(0)
       .setDepth(100);
   }

@@ -15,10 +15,10 @@ export default class PauseScene extends Phaser.Scene {
   create() {
     const cx = GAME_WIDTH / 2;
 
-    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.bg, 0.8).setOrigin(0);
+    this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, COLORS.bg, 0.92).setOrigin(0);
 
     this.add
-      .text(cx, 72, 'Пауза', { fontFamily: FONT.family, fontSize: '20px', color: COLORS.text })
+      .text(cx, 72, 'Пауза', { fontFamily: FONT.family, fontSize: FONT.heading, color: COLORS.text })
       .setOrigin(0.5);
 
     createButton(this, cx, 122, 'Продолжить', () => this.resumeGame());

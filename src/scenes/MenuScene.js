@@ -26,11 +26,11 @@ export default class MenuScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
 
     this.add
-      .text(cx, 36, 'Заказ горит!', { fontFamily: FONT.family, fontSize: '28px', color: COLORS.text })
+      .text(cx, 36, 'Заказ горит!', { fontFamily: FONT.family, fontSize: FONT.title, color: COLORS.text })
       .setOrigin(0.5);
 
     this.add
-      .text(cx, 62, 'Кем пойдёшь на стажировку?', { fontFamily: FONT.family, fontSize: '10px', color: COLORS.textMuted })
+      .text(cx, 62, 'Кем пойдёшь на стажировку?', { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.textMuted })
       .setOrigin(0.5);
 
     const cardY = 118;
@@ -42,7 +42,7 @@ export default class MenuScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
       const sprite = this.add.sprite(x, cardY + 34, baseKey(hero)).setOrigin(0.5, 1).setScale(2).play(`${baseKey(hero)}:idle`);
       const text = this.add
-        .text(x, cardY + CARD.height / 2 + 9, label, { fontFamily: FONT.family, fontSize: '10px', color: COLORS.textMuted })
+        .text(x, cardY + CARD.height / 2 + 9, label, { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.textMuted })
         .setOrigin(0.5);
       frame.on('pointerup', () => this.selectHero(hero));
       return { hero, frame, sprite, text };
@@ -52,11 +52,11 @@ export default class MenuScene extends Phaser.Scene {
     createButton(this, cx, 202, 'Играть', () => this.startGame());
 
     const hint = isTouchDevice
-      ? 'Кнопки на экране: ◀ ▶ — бег, ▲ — прыжок, E — действие'
-      : '← → — выбрать героя   Enter — играть   Esc в игре — пауза';
+      ? 'Выбери героя и нажми «Играть»'
+      : 'Стрелки — выбрать героя, Enter — играть';
 
     this.add
-      .text(cx, 246, hint, { fontFamily: FONT.family, fontSize: '9px', color: COLORS.textMuted })
+      .text(cx, 246, hint, { fontFamily: FONT.family, fontSize: FONT.body, color: COLORS.textMuted })
       .setOrigin(0.5);
 
     const kb = this.input.keyboard;
