@@ -1,0 +1,18 @@
+{
+  "frameWidth": 24,
+  "frameHeight": 24,
+  "origin": "низ по центру",
+  "animations": {
+    "burst": {
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "fps": 14,
+      "loop": false
+    }
+  }
+}

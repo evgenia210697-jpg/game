@@ -15,10 +15,16 @@ const SHEETS = [
   { key: 'puff', path: 'sprites/effects/puff', size: 16 },
   { key: 'twinkle', path: 'sprites/effects/twinkle', size: 8 },
   { key: 'life', path: 'sprites/ui/life', size: 8 },
+  { key: 'peresort_defeat', path: 'sprites/enemies/peresort_defeat', size: 24 },
+  { key: 'rust', path: 'sprites/effects/rust', size: 24 },
+  { key: 'dust', path: 'sprites/effects/dust', width: 16, height: 8 },
+  { key: 'card', path: 'sprites/items/card', width: 12, height: 16 },
+  { key: 'rohlya', path: 'sprites/objects/rohlya', width: 48, height: 20 },
+  { key: 'props', path: 'sprites/objects/props', size: 32 },
 ];
 
 // Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»
-const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle'];
+const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle', 'peresort_defeat', 'rust', 'dust', 'rohlya'];
 
 const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks'];
 

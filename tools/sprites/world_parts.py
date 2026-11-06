@@ -470,3 +470,358 @@ write("ui/life", [
     ("male", 1, False, [LIFE_MALE]),
     ("female", 1, False, [LIFE_FEMALE]),
 ])
+
+
+# ---------- Пересортик: гибель ----------
+# Кадр 1 — «оглушён»: глаза крестиками, гайки разлетаются. Кадр 2 — сплющен перед тем, как рассыпаться.
+
+FACE_DAZED = [  # глаза — тёмные крестики
+    "K.K.K.K",
+    ".K...K.",
+    "K.K.K.K",
+    ".......",
+    "..KKK..",
+    ".K...K.",
+    ".......",
+]
+
+
+def peresort_defeat(stage):
+    c = Canvas(24, 24)
+    if stage == 0:
+        c.stamp(NUT_SMALL, 0, 0)  # М6 слетела вверх-влево
+        c.stamp(LEG, 7, 20)
+        c.stamp(LEG, 13, 20)
+        cells = c.ellipse(11.5, 12.5, 5.5, 7.5, "Oor8")
+        c.outline(cells)
+        for x, y in ((8, 15), (13, 18), (10, 18), (15, 12)):
+            c.put(x, y, "8")
+        c.stamp(FACE_DAZED, 8, 8)
+        c.stamp(["KK", "rK", "KK"], 3, 10)  # руки вскинуты
+        c.stamp(["KK", "Kr", "KK"], 18, 10)
+        c.stamp(NUT_BIG, 16, 1)  # М8 подлетела
+    else:
+        c.stamp(LEG, 6, 20)
+        c.stamp(LEG, 14, 20)
+        cells = c.ellipse(11.5, 17.5, 8, 4.5, "Oor8")
+        c.outline(cells)
+        for x, y in ((6, 18), (15, 19), (10, 20), (17, 16)):
+            c.put(x, y, "8")
+        c.stamp(FACE_DAZED[:3], 8, 15)
+        for x, y in ((3, 12), (20, 11), (6, 10), (17, 9)):  # хлопья ржавчины
+            c.put(x, y, "r")
+    return c.rows()
+
+
+# ---------- Эффекты: ржавые хлопья и пыль ----------
+
+def rust_burst(stage):
+    # Пересортик рассыпается: хлопья ржавчины разлетаются и падают. 24×24
+    import math
+    c = Canvas(24, 24)
+    n = 10
+    for i in range(n):
+        a = 2 * math.pi * i / n + 0.3
+        r = 3 + stage * 3.2
+        x = round(11.5 + r * math.cos(a))
+        y = round(13 + r * math.sin(a) * 0.8 + stage * stage * 0.9)
+        ch = "O" if stage == 0 else "r" if stage < 3 else "8"
+        c.put(x, y, ch)
+        if stage < 2:
+            c.put(x + 1, y, "o")
+    return c.rows()
+
+
+def dust(stage):
+    # Пыль из-под ботинок при приземлении: два облачка расходятся в стороны. 16×8
+    c = Canvas(16, 8)
+    spread = [2, 4, 6][stage]
+    for side in (-1, 1):
+        cx = 7.5 + side * spread
+        for x, y in ((0, 0), (1, 0), (-1, 0), (0, -1)) if stage < 2 else ((0, 0),):
+            c.put(round(cx + x), 6 - stage + y, "5" if stage == 0 else "4" if stage == 1 else "3")
+    return c.rows()
+
+
+# ---------- Карточка стандартов (12×16) ----------
+# Белая карточка с синей шапкой и чертежом болта; блик пробегает по ней.
+
+def std_card(glint):
+    c = Canvas(12, 16)
+    c.rect(1, 1, 10, 14, "6")
+    c.rect(1, 1, 10, 4, "B")
+    c.rect(1, 1, 10, 1, "b")
+    c.rect(2, 3, 3, 1, "6")  # «DIN» — полоска текста в шапке
+    c.rect(6, 3, 4, 1, "L")
+    # Чертёж болта: головка и стержень с резьбой
+    c.rect(3, 7, 6, 2, "1")
+    c.rect(5, 9, 2, 5, "3")
+    for y in (10, 12):
+        c.put(4, y, "1")
+        c.put(7, y, "1")
+    c.rect(8, 13, 2, 1, "4")
+    for x in range(0, 12):
+        for y in (0, 15):
+            c.put(x, y, "K")
+    for y in range(0, 16):
+        for x in (0, 11):
+            c.put(x, y, "K")
+    if glint is not None:
+        for i in range(4):
+            x, y = glint + i, 13 - i * 3
+            for dy in range(3):
+                if 1 <= x < 11 and 1 <= y + dy < 15:
+                    c.put(x, y + dy, "L" if c.px[y + dy][x] == "B" else "5" if c.px[y + dy][x] != "6" else "L")
+    return c.rows()
+
+
+# ---------- Рохля (48×20) ----------
+# Гидравлическая тележка с поддоном: на поддоне можно стоять и кататься. Ручка — справа, едет вправо.
+# Корпус жёлтый — техника безопасности, вилы стальные.
+
+def rohlya(wheel):
+    c = Canvas(48, 20)
+    # Поддон на вилах: верхние доски и три бруска
+    c.rect(1, 6, 36, 2, "W")
+    c.rect(1, 6, 36, 1, "X")
+    for x in (1, 17, 33):
+        c.rect(x, 8, 4, 3, "w")
+    c.rect(1, 11, 36, 1, "w")
+    for x in range(1, 37, 6):
+        c.put(x, 7, "w")
+    # Вилы под поддоном
+    c.rect(0, 12, 38, 3, "3")
+    c.rect(0, 12, 38, 1, "4")
+    c.rect(0, 14, 38, 1, "1")
+    # Гидроблок и рама
+    c.rect(36, 7, 6, 9, "Y")
+    c.rect(36, 7, 6, 1, "Z")
+    c.rect(41, 8, 1, 8, "y")
+    c.rect(38, 9, 2, 4, "1")  # цилиндр
+    c.put(38, 9, "4")
+    # Ручка-дышло с рукоятью
+    for i in range(7):
+        c.put(41 + i // 2, 6 - i, "K")
+        c.put(42 + i // 2, 6 - i, "2")
+    c.rect(43, 0, 5, 1, "K")
+    c.rect(43, 1, 5, 1, "D")
+    # Колёса: переднее большое под гидроблоком, ролики под вилами
+    for cx in (39,):
+        c.rect(cx - 2, 15, 5, 5, "K")
+        c.rect(cx - 1, 16, 3, 3, "2")
+        c.put(cx - 1 + wheel, 17 if wheel != 1 else 16, "5")
+    for rx in (3, 30):
+        c.rect(rx, 15, 4, 4, "K")
+        c.rect(rx + 1, 16, 2, 2, "1")
+        c.put(rx + 1 + wheel % 2, 16, "4")
+    # Контур корпуса и вил
+    for x in range(0, 38):
+        if c.px[15][x] == ".":
+            c.put(x, 15, "K")
+    c.rect(0, 11, 1, 4, "K")
+    c.rect(35, 6, 1, 10, "K")
+    c.rect(36, 6, 6, 1, "K")
+    c.rect(42, 7, 1, 9, "K")
+    return c.rows()
+
+
+# ---------- Реквизит склада (32×32, опорная точка — низ по центру) ----------
+# Декор без физики: оживляет уровень. Без надписей и чужих марок.
+
+def pallet(c, x, y, w=28):
+    c.rect(x, y, w, 2, "W")
+    c.rect(x, y, w, 1, "X")
+    for bx in (x, x + w // 2 - 2, x + w - 4):
+        c.rect(bx, y + 2, 4, 2, "w")
+    c.rect(x, y + 4, w, 1, "w")
+
+
+def prop_sacks():
+    # Мешки на поддоне (цемент/смесь) — серые, с синей полосой
+    c = Canvas(32, 32)
+    pallet(c, 2, 27)
+    for (cx, cy) in ((9, 23), (22, 23), (15.5, 16.5)):
+        cells = c.ellipse(cx, cy, 7, 4.2, "5432")
+        c.outline(cells)
+        c.rect(int(cx) - 1, int(cy) - 3, 2, 6, "B")
+    return c.rows()
+
+
+def prop_barrel():
+    # Синяя пластиковая бочка
+    c = Canvas(32, 32)
+    c.rect(9, 10, 14, 22, "n")
+    c.rect(10, 10, 3, 22, "B")
+    c.rect(11, 10, 1, 22, "b")
+    c.rect(20, 10, 3, 22, "N")
+    for y in (14, 24):
+        c.rect(9, y, 14, 1, "N")
+        c.rect(10, y - 1, 12, 1, "b")
+    c.rect(9, 9, 14, 2, "b")
+    c.rect(12, 9, 3, 1, "L")
+    for y in range(9, 32):
+        c.put(8, y, "K")
+        c.put(23, y, "K")
+    c.rect(8, 8, 16, 1, "K")
+    return c.rows()
+
+
+def prop_extinguisher():
+    # Огнетушитель на кронштейне у стены
+    c = Canvas(32, 32)
+    c.rect(13, 14, 6, 15, "x")
+    c.rect(14, 14, 1, 15, "T")
+    c.rect(18, 14, 1, 15, "c")
+    c.rect(13, 20, 6, 3, "6")  # белая наклейка
+    c.rect(14, 21, 4, 1, "x")
+    c.rect(14, 11, 4, 3, "1")
+    c.rect(13, 10, 6, 1, "K")
+    c.rect(18, 11, 4, 1, "K")  # рычаг
+    for y in range(12, 22):
+        c.put(20 if y < 18 else 21, y, "D")  # шланг
+    for y in range(10, 30):
+        c.put(12, y, "K")
+        c.put(19, y, "K")
+    c.rect(12, 29, 8, 1, "K")
+    c.rect(11, 30, 10, 2, "2")  # подставка
+    c.rect(11, 30, 10, 1, "3")
+    return c.rows()
+
+
+def prop_wrapped():
+    # Паллета, обмотанная стрейч-плёнкой: коробки просвечивают, блики плёнки
+    c = Canvas(32, 32)
+    pallet(c, 2, 27)
+    c.rect(3, 6, 26, 21, "W")
+    for y in (6, 13, 20):
+        c.rect(3, y, 26, 1, "w")
+    for x in (11, 20):
+        c.rect(x, 6, 1, 21, "w")
+    c.rect(3, 6, 26, 1, "X")
+    for i in range(0, 21, 2):
+        c.put(5 + i // 3, 7 + i, "5")
+        c.put(24 - i // 4, 8 + i, "6" if i % 4 == 0 else "4")
+    c.rect(3, 9, 26, 1, "4")
+    c.rect(3, 22, 26, 1, "4")
+    for y in range(6, 27):
+        c.put(2, y, "K")
+        c.put(29, y, "K")
+    c.rect(2, 5, 28, 1, "K")
+    return c.rows()
+
+
+def prop_cart():
+    # Платформенная тележка с коробкой
+    c = Canvas(32, 32)
+    c.rect(3, 24, 24, 3, "3")
+    c.rect(3, 24, 24, 1, "4")
+    c.rect(3, 26, 24, 1, "1")
+    for y in range(10, 24):  # ручка
+        c.put(26, y, "2")
+        c.put(27, y, "K")
+    c.rect(24, 10, 4, 1, "K")
+    for wx in (6, 21):
+        c.rect(wx - 2, 27, 5, 5, "K")
+        c.rect(wx - 1, 28, 3, 3, "2")
+    c.rect(6, 14, 14, 10, "W")
+    c.rect(6, 14, 14, 1, "X")
+    c.rect(12, 14, 2, 10, "5")
+    c.rect(6, 23, 14, 1, "w")
+    c.rect(5, 13, 16, 1, "K")
+    for y in range(14, 24):
+        c.put(5, y, "K")
+        c.put(20, y, "K")
+    return c.rows()
+
+
+def prop_ladder():
+    # Стремянка с площадкой
+    c = Canvas(32, 32)
+    for i in range(30):
+        x1 = 9 + i // 5
+        x2 = 22 - i // 5
+        c.put(x1, 31 - i, "Y")
+        c.put(x1 - 1, 31 - i, "K")
+        c.put(x2, 31 - i, "y")
+        c.put(x2 + 1, 31 - i, "K")
+    for y in (26, 20, 14, 8):
+        i = 31 - y
+        c.rect(9 + i // 5, y, 14 - 2 * (i // 5), 1, "3")
+    c.rect(13, 1, 7, 2, "3")
+    c.rect(13, 1, 7, 1, "5")
+    return c.rows()
+
+
+def prop_crate_bolts():
+    # Ящик с болтами — свои, крепёжные
+    c = Canvas(32, 32)
+    pallet(c, 4, 27, 24)
+    c.rect(6, 15, 20, 12, "w")
+    c.rect(6, 15, 20, 1, "W")
+    for y in (19, 23):
+        c.rect(6, y, 20, 1, "W")
+    for x in range(7, 25, 2):
+        c.put(x, 13, "4")
+        c.put(x + 1, 14, "3")
+        c.put(x, 14, "2")
+    c.rect(8, 12, 2, 1, "5")
+    c.rect(18, 12, 2, 1, "5")
+    for y in range(13, 27):
+        c.put(5, y, "K")
+        c.put(26, y, "K")
+    c.rect(5, 27 - 1, 22, 1, "K")
+    return c.rows()
+
+
+def prop_lamp():
+    # Подвесной светильник (низ — у крепления троса). Свет рисует игра.
+    c = Canvas(32, 32)
+    c.rect(15, 0, 1, 22, "1")
+    c.rect(10, 22, 12, 3, "2")
+    c.rect(10, 22, 12, 1, "3")
+    c.rect(8, 25, 16, 2, "1")
+    c.rect(9, 27, 14, 1, "Z")
+    c.rect(11, 28, 10, 1, "6")
+    return c.rows()
+
+
+PROPS = [
+    ("sacks", prop_sacks()),
+    ("barrel", prop_barrel()),
+    ("extinguisher", prop_extinguisher()),
+    ("wrapped", prop_wrapped()),
+    ("cart", prop_cart()),
+    ("ladder", prop_ladder()),
+    ("crate_bolts", prop_crate_bolts()),
+    ("lamp", prop_lamp()),
+]
+
+write("enemies/peresort_defeat", [
+    "# Гибель Пересортика: оглушён → сплющен. Дальше игра рассыпает его хлопьями (effects/rust). 24×24.",
+    "# Собран в tools/sprites/world_parts.py — правь там.",
+], 24, 24, [
+    ("defeat", 8, False, [peresort_defeat(0), peresort_defeat(1)]),
+])
+write("effects/rust", ["# Пересортик рассыпается ржавыми хлопьями. 24×24, центр."], 24, 24, [
+    ("burst", 14, False, [rust_burst(s) for s in range(5)]),
+])
+write("effects/dust", ["# Пыль из-под ботинок. 16×8, низ по центру."], 16, 8, [
+    ("land", 14, False, [dust(0), dust(1), dust(2)]),
+])
+write("items/card", [
+    "# Карточка стандартов — коллекция, 3 на уровне (ТЗ, раздел 3). 12×16, центр. Блеск над ней добавляет игра (effects/twinkle).",
+    "# Собрана в tools/sprites/world_parts.py — правь там.",
+], 12, 16, [
+    ("card", 1, False, [std_card(None)]),
+])
+write("objects/rohlya", [
+    "# Рохля с поддоном — на ней катаются (ТЗ: мир «Склад»). 48×20, низ по центру. Ручка справа — едет вправо.",
+    "# Собрана в tools/sprites/world_parts.py — правь там.",
+], 48, 20, [
+    ("idle", 1, False, [rohlya(0)]),
+    ("roll", 12, True, [rohlya(0), rohlya(1), rohlya(2)]),
+])
+write("objects/props", [
+    "# Реквизит склада — декор без физики. Кадр 32×32, низ по центру. Имя анимации = предмет.",
+    "# Собран в tools/sprites/world_parts.py — правь там.",
+], 32, 32, [(name, 1, False, [rows]) for name, rows in PROPS])

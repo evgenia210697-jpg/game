@@ -1,0 +1,22 @@
+# Карточка стандартов — коллекция, 3 на уровне (ТЗ, раздел 3). 12×16, центр. Блеск над ней добавляет игра (effects/twinkle).
+# Собрана в tools/sprites/world_parts.py — правь там.
+size 12x16
+
+anim card 1 once
+frame
+KKKKKKKKKKKK
+KbbbbbbbbbbK
+KBBBBBBBBBBK
+KB666BLLLLBK
+KBBBBBBBBBBK
+K6666666666K
+K6666666666K
+K6611111166K
+K6611111166K
+K6666336666K
+K6661331666K
+K6666336666K
+K6661331666K
+K6666336446K
+K6666666666K
+KKKKKKKKKKKK

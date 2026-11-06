@@ -42,3 +42,15 @@ export function loadVolumes() {
 export function saveVolumes(volumes) {
   write('volumes', volumes);
 }
+
+// Найденные Карточки стандартов — на все прохождения: повод перепройти уровень (ТЗ, раздел 3)
+export function loadCards() {
+  const list = read('cards', []);
+  return new Set(Array.isArray(list) ? list.filter((x) => typeof x === 'string') : []);
+}
+
+export function saveCard(id) {
+  const cards = loadCards();
+  cards.add(id);
+  write('cards', [...cards]);
+}
