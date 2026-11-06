@@ -44,6 +44,11 @@ class Canvas:
                 if (nx, ny) not in cells and 0 <= nx < self.w and 0 <= ny < self.h and self.px[ny][nx] == ".":
                     self.px[ny][nx] = ch
 
+    def rect(self, x, y, w, h, ch):
+        for yy in range(y, y + h):
+            for xx in range(x, x + w):
+                self.put(xx, yy, ch)
+
     def rows(self):
         return ["".join(r) for r in self.px]
 
@@ -314,4 +319,121 @@ write("companion/washer", [
 ], 12, 12, [
     ("idle", 4, True, [washer(0), washer(0), washer(1), washer(0)]),
     ("react", 12, False, [washer(2), washer(1), washer(0)]),
+])
+
+
+# ---------- Финиш: ворота отгрузки (48×64) ----------
+# Проём в стене склада, сверху свёрнутый рулонный затвор и синяя табличка с фурой,
+# в проёме — день и открытый кузов фуры с коробками. Надпись «ОТГРУЗКА» выводит игра.
+
+def loading_gate():
+    c = Canvas(48, 64)
+    # Проём: дневной свет снаружи — сверху светлее
+    c.rect(4, 14, 40, 50, "A")
+    c.rect(4, 14, 40, 12, "e")
+    # Асфальт снаружи
+    c.rect(4, 58, 40, 6, "2")
+    # Фура задом к воротам: кузов синий, двери распахнуты, внутри коробки
+    c.rect(9, 24, 30, 33, "K")
+    c.rect(10, 25, 28, 31, "n")
+    c.rect(10, 25, 28, 2, "B")
+    c.rect(13, 28, 22, 26, "D")  # тёмный кузов изнутри
+    for bx, by, bw, bh in ((14, 42, 9, 12), (24, 44, 10, 10), (15, 33, 8, 9), (25, 36, 8, 8)):
+        c.rect(bx, by, bw, bh, "W")
+        c.rect(bx, by, bw, 1, "X")
+        c.rect(bx + bw // 2, by, 1, bh, "X")
+        c.rect(bx + bw - 1, by, 1, bh, "w")
+    c.rect(10, 28, 3, 26, "N")  # распахнутые створки по краям
+    c.rect(35, 28, 3, 26, "N")
+    c.put(11, 52, "x")  # фонари
+    c.put(36, 52, "x")
+    c.rect(9, 56, 30, 2, "K")  # бампер
+    c.rect(12, 58, 6, 4, "K")  # колёса
+    c.rect(30, 58, 6, 4, "K")
+    c.rect(13, 59, 4, 2, "1")
+    c.rect(31, 59, 4, 2, "1")
+    # Рулонный затвор, свёрнутый наверху
+    c.rect(4, 10, 40, 5, "2")
+    for x in range(4, 44, 3):
+        c.rect(x, 10, 1, 5, "1")
+    c.rect(4, 14, 40, 1, "K")
+    # Верхняя балка и синяя табличка с пиктограммой фуры
+    c.rect(0, 0, 48, 10, "3")
+    c.rect(0, 0, 48, 1, "5")
+    c.rect(0, 9, 48, 1, "K")
+    c.rect(14, 1, 20, 8, "K")
+    c.rect(15, 2, 18, 6, "B")
+    c.stamp(["666666...", "6666666..", "66666666.", ".K....K.."], 19, 3)  # фура-пиктограмма
+    # Стойки ворот с жёлто-чёрной разметкой
+    for x0 in (0, 44):
+        c.rect(x0, 10, 4, 54, "3")
+        for y in range(10, 64):
+            if (y // 4) % 2 == 0:
+                c.rect(x0 + 1, y, 2, 1, "Y")
+            else:
+                c.rect(x0 + 1, y, 2, 1, "K")
+        c.rect(x0, 10, 1, 54, "K")
+        c.rect(x0 + 3, 10, 1, 54, "K")
+    return c.rows()
+
+
+write("objects/loading_gate", [
+    "# Финиш — ворота отгрузки. Кадр 48×64, опорная точка — низ по центру. Надпись «ОТГРУЗКА» выводит игра.",
+    "# Собраны в tools/sprites/world_parts.py — правь там.",
+], 48, 64, [
+    ("gate", 1, False, [loading_gate()]),
+])
+
+
+# ---------- Эффекты ----------
+
+def spark(stage):
+    # Искра удара 12×12: вспышка → звезда → гаснущие точки
+    c = Canvas(12, 12)
+    if stage == 0:
+        c.stamp(["..6..", ".666.", "66666", ".666.", "..6.."], 4, 4)
+    elif stage == 1:
+        for i in range(1, 6):
+            for x, y in ((6 + i, 6), (6 - i, 6), (6, 6 + i), (6, 6 - i)):
+                c.put(x, y, "Z" if i > 2 else "6")
+        for i in (2, 3):
+            for x, y in ((6 + i, 6 + i), (6 - i, 6 - i), (6 + i, 6 - i), (6 - i, 6 + i)):
+                c.put(x, y, "Y")
+        c.put(6, 6, "6")
+    else:
+        for x, y in ((1, 6), (11, 6), (6, 1), (6, 11), (2, 2), (10, 10), (10, 2), (2, 10)):
+            c.put(x, y, "Y")
+    return c.rows()
+
+
+def puff(radius, sparse):
+    # «Пуф» при подборе бонуса 16×16: колечко расширяется и рассыпается
+    c = Canvas(16, 16)
+    import math
+    steps = 16 if not sparse else 8
+    for i in range(steps):
+        a = 2 * math.pi * i / steps
+        x, y = round(7.5 + radius * math.cos(a)), round(7.5 + radius * math.sin(a))
+        c.put(x, y, "6" if radius < 5 else "5")
+    return c.rows()
+
+
+def twinkle(size):
+    # Блеск при сборе болта 8×8: звёздочка
+    c = Canvas(8, 8)
+    c.put(3, 3, "6")
+    for i in range(1, size + 1):
+        for x, y in ((3 + i, 3), (3 - i, 3), (3, 3 + i), (3, 3 - i)):
+            c.put(x, y, "6" if i == 1 else "5")
+    return c.rows()
+
+
+write("effects/spark", ["# Искра удара. 12×12, центр."], 12, 12, [
+    ("hit", 18, False, [spark(0), spark(1), spark(2)]),
+])
+write("effects/puff", ["# «Пуф» при подборе бонуса. 16×16, центр."], 16, 16, [
+    ("pick", 16, False, [puff(3, False), puff(5, False), puff(7, True), puff(7.5, True)]),
+])
+write("effects/twinkle", ["# Блеск при сборе болта. 8×8, центр."], 8, 8, [
+    ("bolt", 16, False, [twinkle(1), twinkle(3), twinkle(2), twinkle(1)]),
 ])

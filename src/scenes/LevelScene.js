@@ -15,6 +15,7 @@ import BuffBar from '../ui/BuffBar.js';
 import { showToast } from '../ui/toast.js';
 import { heroTexture, HERO_FRAME } from '../gfx/hero.js';
 import { frameOf } from '../gfx/art.js';
+import { playFx } from '../gfx/fx.js';
 
 // Серый тестовый уровень: проверяем, как бегается и прыгается.
 // Платформы — в тайлах: [x, y, ширина, высота], y — верхний ряд.
@@ -142,10 +143,17 @@ export default class LevelScene extends Phaser.Scene {
     this.addSolid(0, GROUND_TOP, worldWidth, GAME_HEIGHT - GROUND_TOP, 'ground');
     PLATFORMS.forEach(([x, y, w, h]) => this.addSolid(x * TILE, y * TILE, w * TILE, h * TILE));
 
-    // Финиш
-    this.add.rectangle(FINISH_X, GROUND_TOP, 4, 64, COLORS.accent).setOrigin(0.5, 1);
+    // Финиш — ворота отгрузки: герой забегает в проём, к фуре. Надпись — текстом игры, не в картинке
+    const gateX = FINISH_X + 12;
+    this.add.image(gateX, GROUND_TOP, 'loading_gate').setOrigin(0.5, 1);
     this.add
-      .text(FINISH_X, GROUND_TOP - 72, 'ФИНИШ', { fontFamily: FONT.family, fontSize: '10px', color: COLORS.textAccent })
+      .text(gateX, GROUND_TOP - 68, 'ОТГРУЗКА', {
+        fontFamily: FONT.family,
+        fontSize: '9px',
+        color: COLORS.text,
+        backgroundColor: '#16181c',
+        padding: { x: 3, y: 1 },
+      })
       .setOrigin(0.5, 1);
 
     this.checkpoint = new Checkpoint(this, CHECKPOINT_X, GROUND_TOP);
@@ -205,9 +213,6 @@ export default class LevelScene extends Phaser.Scene {
       }
     });
     this.physics.add.overlap(this.player, this.bolts, (player, bolt) => this.collectBolt(bolt));
-
-    // «Действие» — пока просто вспышка перед героем, чтобы проверить кнопку
-    this.actionFx = this.add.rectangle(0, 0, 10, 6, COLORS.groundTop).setVisible(false);
 
     this.cameras.main.setBounds(0, 0, worldWidth, GAME_HEIGHT);
     this.cameras.main.startFollow(this.player, true, 0.15, 0.15);
@@ -284,6 +289,7 @@ export default class LevelScene extends Phaser.Scene {
     this.physics.world.disable(bolt);
     this.boltCount += 1;
     this.boltCounter.set(this.boltCount);
+    playFx(this, bolt.x, bolt.y, 'twinkle', 'bolt');
 
     // Болт взлетает и тает
     this.tweens.add({
@@ -597,11 +603,8 @@ export default class LevelScene extends Phaser.Scene {
     // Анимация удара: замах и выброс кулака (4 кадра по 15 в секунду)
     this.actingUntil = this.time.now + 270;
     this.player.play(`${this.heroTex}:action`); // с начала, даже если удар уже шёл
-    // Вспышка у кулака в момент удара
-    this.time.delayedCall(70, () => {
-      this.actionFx.setPosition(this.player.x + this.facing * 14, this.player.y + 2).setVisible(true);
-      this.time.delayedCall(100, () => this.actionFx.setVisible(false));
-    });
+    // Искра у кулака в момент удара
+    this.time.delayedCall(70, () => playFx(this, this.player.x + this.facing * 16, this.player.y + 2, 'spark', 'hit'));
   }
 
   finish() {
@@ -611,10 +614,12 @@ export default class LevelScene extends Phaser.Scene {
     this.playHeroAnim('victory');
     touch.setVisible(false);
     this.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'Уровень пройден!', {
+      .text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'Заказ отгружен!', {
         fontFamily: FONT.family,
         fontSize: '16px',
         color: COLORS.text,
+        backgroundColor: '#16181c',
+        padding: { x: 8, y: 4 },
       })
       .setOrigin(0.5)
       .setScrollFactor(0);

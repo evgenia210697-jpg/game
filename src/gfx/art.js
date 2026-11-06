@@ -10,10 +10,14 @@ const SHEETS = [
   { key: 'turnstile', path: 'sprites/objects/turnstile', size: 32 },
   { key: 'bonuses', path: 'sprites/items/bonuses', size: 16 },
   { key: 'washer', path: 'sprites/companion/washer', size: 12 },
+  { key: 'loading_gate', path: 'sprites/objects/loading_gate', width: 48, height: 64 },
+  { key: 'spark', path: 'sprites/effects/spark', size: 12 },
+  { key: 'puff', path: 'sprites/effects/puff', size: 16 },
+  { key: 'twinkle', path: 'sprites/effects/twinkle', size: 8 },
 ];
 
 // Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»
-const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer'];
+const ANIMATED = ['bolt', 'peresort', 'bonuses', 'washer', 'spark', 'puff', 'twinkle'];
 
 const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks'];
 

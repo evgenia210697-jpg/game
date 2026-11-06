@@ -1,3 +1,5 @@
+import { playFx } from '../gfx/fx.js';
+
 // Шайба Гроверная — компаньон. Сначала лежит на уровне и покачивается.
 // Подобрал — летит за героем и даёт двойной прыжок.
 // Стальная разрезная шайба 12×12 (DIN 127), над ней изредка проскакивают искры.
@@ -24,6 +26,7 @@ export default class Washer {
     this.following = true;
     this.bob.stop();
     this.scene.physics.world.disable(this.sprite);
+    playFx(this.scene, this.sprite.x, this.sprite.y, 'puff', 'pick');
   }
 
   // Летит чуть позади и выше плеча героя, с запаздыванием

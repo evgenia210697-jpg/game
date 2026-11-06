@@ -1,0 +1,16 @@
+{
+  "frameWidth": 12,
+  "frameHeight": 12,
+  "origin": "низ по центру",
+  "animations": {
+    "hit": {
+      "frames": [
+        0,
+        1,
+        2
+      ],
+      "fps": 18,
+      "loop": false
+    }
+  }
+}
