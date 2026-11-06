@@ -6,7 +6,12 @@ const SHEETS = [
   { key: 'tiles_warehouse', path: 'sprites/tilesets/warehouse', size: 16 },
   { key: 'bolt', path: 'sprites/items/bolt', size: 8 },
   { key: 'hud', path: 'sprites/ui/hud', width: 10, height: 7 },
+  { key: 'peresort', path: 'sprites/enemies/peresort', size: 24 },
+  { key: 'turnstile', path: 'sprites/objects/turnstile', size: 32 },
 ];
+
+// Анимации из JSON генератора: ключ «<спрайтшит>:<анимация>»
+const ANIMATED = ['bolt', 'peresort'];
 
 const BACKGROUNDS = ['warehouse_wall', 'warehouse_racks'];
 
@@ -22,14 +27,17 @@ export function preloadArt(scene) {
 }
 
 export function createArtAnims(scene) {
-  const meta = scene.cache.json.get('bolt_meta');
-  const a = meta.animations.shine;
-  scene.anims.create({
-    key: 'bolt:shine',
-    frames: scene.anims.generateFrameNumbers('bolt', { frames: a.frames }),
-    frameRate: a.fps,
-    repeat: -1,
-  });
+  for (const sheet of ANIMATED) {
+    const meta = scene.cache.json.get(`${sheet}_meta`);
+    for (const [name, a] of Object.entries(meta.animations)) {
+      scene.anims.create({
+        key: `${sheet}:${name}`,
+        frames: scene.anims.generateFrameNumbers(sheet, { frames: a.frames }),
+        frameRate: a.fps,
+        repeat: a.loop ? -1 : 0,
+      });
+    }
+  }
 }
 
 // Номер кадра по имени: tileFrame(scene, 'tiles_warehouse', 'box_a')

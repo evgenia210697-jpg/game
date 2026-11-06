@@ -1,9 +1,9 @@
-import { COLORS } from '../config.js';
 import { showToast } from '../ui/toast.js';
+import { frameOf } from '../gfx/art.js';
 
 // Чекпоинт — турникет-проходная. Пробежал через него — «отметился»,
 // и после потери здоровья появляешься здесь, а не в начале уровня.
-// Пока это стойка и планка; спрайт турникета — на этапе графики.
+// Закрыта — красная лампа и планки поперёк; отметился — зелёные лампа и экран, планки откинуты.
 export default class Checkpoint {
   constructor(scene, x, groundY) {
     this.scene = scene;
@@ -11,8 +11,7 @@ export default class Checkpoint {
     this.groundY = groundY;
     this.active = false;
 
-    this.post = scene.add.rectangle(x, groundY, 6, 24, COLORS.checkpoint).setOrigin(0.5, 1);
-    this.arm = scene.add.rectangle(x + 3, groundY - 14, 14, 3, COLORS.checkpoint).setOrigin(0, 0.5);
+    this.sprite = scene.add.image(x, groundY, 'turnstile', frameOf(scene, 'turnstile', 'closed')).setOrigin(0.5, 1);
 
     // Невидимая зона срабатывания во всю высоту героя
     this.zone = scene.add.zone(x, groundY - 24, 16, 48);
@@ -23,10 +22,10 @@ export default class Checkpoint {
     if (this.active) return false;
     this.active = true;
 
-    this.post.setFillStyle(COLORS.accent);
-    this.arm.setFillStyle(COLORS.accent);
-    // Планка турникета поднимается — проход открыт
-    this.scene.tweens.add({ targets: this.arm, angle: -80, duration: 200 });
+    // Планки откидываются, лампа загорается зелёным; лёгкий «пружинящий» отклик
+    this.sprite.setFrame(frameOf(this.scene, 'turnstile', 'open'));
+    this.sprite.setScale(1, 1.08);
+    this.scene.tweens.add({ targets: this.sprite, scaleY: 1, duration: 180, ease: 'Back.easeOut' });
 
     const female = this.scene.registry.get('hero') === 'female';
     showToast(this.scene, female ? 'Отметилась на проходной!' : 'Отметился на проходной!');
