@@ -1,0 +1,14 @@
+{
+  "frameWidth": 12,
+  "frameHeight": 16,
+  "origin": "низ по центру",
+  "animations": {
+    "card": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "frameWidth": 24,
+  "frameHeight": 24,
+  "origin": "низ по центру",
+  "animations": {
+    "defeat": {
+      "frames": [
+        0,
+        1
+      ],
+      "fps": 8,
+      "loop": false
+    }
+  }
+}

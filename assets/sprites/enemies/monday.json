@@ -1,0 +1,17 @@
+{
+  "frameWidth": 24,
+  "frameHeight": 24,
+  "origin": "низ по центру",
+  "animations": {
+    "walk": {
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "fps": 6,
+      "loop": true
+    }
+  }
+}

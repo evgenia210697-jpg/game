@@ -1,0 +1,28 @@
+{
+  "frameWidth": 10,
+  "frameHeight": 7,
+  "origin": "низ по центру",
+  "animations": {
+    "cell_full": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "cell_empty": {
+      "frames": [
+        1
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "cell_helmet": {
+      "frames": [
+        2
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}

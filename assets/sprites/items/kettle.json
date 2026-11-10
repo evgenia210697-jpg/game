@@ -1,0 +1,15 @@
+{
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "origin": "низ по центру",
+  "animations": {
+    "idle": {
+      "frames": [
+        0,
+        1
+      ],
+      "fps": 3,
+      "loop": true
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "frameWidth": 8,
+  "frameHeight": 8,
+  "origin": "низ по центру",
+  "animations": {
+    "nut": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "bolt": {
+      "frames": [
+        1
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "washer": {
+      "frames": [
+        2
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "screw": {
+      "frames": [
+        3
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "frameWidth": 16,
+  "frameHeight": 8,
+  "origin": "низ по центру",
+  "animations": {
+    "land": {
+      "frames": [
+        0,
+        1,
+        2
+      ],
+      "fps": 14,
+      "loop": false
+    }
+  }
+}

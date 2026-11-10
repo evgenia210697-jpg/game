@@ -1,0 +1,19 @@
+{
+  "frameWidth": 8,
+  "frameHeight": 8,
+  "origin": "низ по центру",
+  "animations": {
+    "shine": {
+      "frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "fps": 6,
+      "loop": true
+    }
+  }
+}

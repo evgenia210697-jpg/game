@@ -1,0 +1,36 @@
+{
+  "frameWidth": 16,
+  "frameHeight": 16,
+  "origin": "низ по центру",
+  "animations": {
+    "helmet": {
+      "frames": [
+        0
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "coffee": {
+      "frames": [
+        1,
+        2
+      ],
+      "fps": 3,
+      "loop": true
+    },
+    "tape": {
+      "frames": [
+        3
+      ],
+      "fps": 1,
+      "loop": false
+    },
+    "paint": {
+      "frames": [
+        4
+      ],
+      "fps": 1,
+      "loop": false
+    }
+  }
+}
